@@ -1,28 +1,4 @@
-:root {
-  --ink: #1B1F3B;
-  --night: #0B0F2A;
-  --plum: #2A1A4A;
-  --crimson: #D7263D;
-  --crimson-deep: #A3122A;
-  --cream: #FFF4DF;
-  --gold: #FFD36E;
-  --display: "Lalezar", "Baloo Bhaijaan 2", "Segoe UI", Tahoma, sans-serif;
-  --body: "Baloo Bhaijaan 2", "Segoe UI", Tahoma, system-ui, sans-serif;
-  color-scheme: light;
-}
-
-* { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; overflow: hidden; background: var(--night); }
-body {
-  font-family: var(--body);
-  color: var(--cream);
-  touch-action: manipulation;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-button { font: inherit; }
-:focus-visible { outline: 3px solid var(--gold); outline-offset: 4px; }
+/* the apple game — scene, HUD and overlay */
 .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
 #stage { position: fixed; inset: 0; overflow: hidden; overflow: clip; isolation: isolate; }
@@ -82,11 +58,11 @@ button { font: inherit; }
 .hand { fill: #F0BE96; }
 .shoe { fill: #2A2233; }
 
-#apples, #flutters { position: absolute; inset: 0; }
-#apples, #flutters, .flutter { pointer-events: none; }   /* containers must never swallow taps */
-.apple-node { position: absolute; pointer-events: auto; touch-action: none; outline-offset: 2px; border-radius: 50%; }
-.apple-inner { position: absolute; inset: 0; will-change: transform; }
-.apple-node svg {
+#fruits, #flutters { position: absolute; inset: 0; }
+#fruits, #flutters, .flutter { pointer-events: none; }   /* containers must never swallow taps */
+.fruit-node { position: absolute; pointer-events: auto; touch-action: none; outline-offset: 2px; border-radius: 50%; }
+.fruit-inner { position: absolute; inset: 0; will-change: transform; }
+.fruit-node svg {
   position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;
   transform-origin: 50% 4%;
   animation: sway 3.2s ease-in-out infinite alternate;
@@ -97,10 +73,12 @@ button { font: inherit; }
   border-radius: 50%; border: 3px solid var(--gold); opacity: 0;
 }
 .ripe.reachable .ring { animation: ring 1.9s ease-out infinite; }
-.picking .apple-node.reachable { cursor: grab; }
+/* reachable with the pole (not by hand): a sky-blue dashed ring, a touch slower */
+.ripe.by-pole .ring { border-color: #7FD1FF; border-style: dashed; border-width: 3.5px; animation-duration: 2.4s; }
+.picking .fruit-node.reachable { cursor: grab; }
 /* out of reach: still pretty, just quiet until you get close */
-.apple-node:not(.reachable) .apple-inner { opacity: .58; }
-.apple-inner { transition: opacity .4s ease; }
+.fruit-node:not(.reachable) .fruit-inner { opacity: .58; }
+.fruit-inner { transition: opacity .4s ease; }
 
 .flutter { position: absolute; left: 0; top: 0; width: 34px; height: 28px; margin: -14px 0 0 -17px; will-change: transform; }
 .flutter svg { width: 100%; height: 100%; overflow: visible; }
@@ -124,26 +102,26 @@ button { font: inherit; }
   text-shadow: 0 4px 0 #3A1A45, 0 18px 50px rgba(215, 38, 61, .35);
 }
 #title .word, #finale-title .word { display: inline-block; will-change: transform; }
-#apple-btn {
+#fruit-btn {
   all: unset; position: relative; pointer-events: auto; cursor: pointer;
   width: min(44vmin, 300px); aspect-ratio: 240 / 260;
   margin-block: clamp(8px, 3vh, 36px);
   border-radius: 40%;
 }
-#apple-btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 10px; }
-.apple-glow {
+#fruit-btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 10px; }
+.fruit-glow {
   position: absolute; inset: -45%; border-radius: 50%;
   background: radial-gradient(circle, rgba(255, 120, 110, .55), rgba(255, 80, 130, .16) 42%, transparent 68%);
   opacity: .85; will-change: transform, opacity;
 }
-.apple-shadow {
+.fruit-shadow {
   position: absolute; left: 50%; bottom: -12%; width: 60%; height: 10%; translate: -50% 0;
   border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 110, 140, .35), transparent);
   animation: shadow 3.4s ease-in-out infinite;
 }
-.apple-float, .apple-tilt, .apple-squash { position: absolute; inset: 0; display: block; }
-.apple-float { animation: float 3.4s ease-in-out infinite; }
-.apple-tilt { transform-style: preserve-3d; }
+.fruit-float, .fruit-tilt, .fruit-squash { position: absolute; inset: 0; display: block; }
+.fruit-float { animation: float 3.4s ease-in-out infinite; }
+.fruit-tilt { transform-style: preserve-3d; }
 .half, .crack { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; }
 .half { transform-origin: 50% 91.5%; }
 .crack { visibility: hidden; }
@@ -160,31 +138,18 @@ button { font: inherit; }
 
 /* ---------- hud ---------- */
 #hud { z-index: 7; }
-#sound, #lang {
+#home, #sound, #lang {
   position: absolute; top: 16px; left: 16px; pointer-events: auto; cursor: pointer;
   width: 46px; height: 46px; display: grid; place-items: center;
   color: var(--ink); background: var(--cream);
   border: 2.5px solid var(--ink); border-radius: 50%; box-shadow: 0 4px 0 var(--ink);
   transition: transform .15s, box-shadow .15s;
 }
-#sound:active, #lang:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+#home:active, #sound:active, #lang:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
 #sound svg { width: 24px; }
-#lang { left: 72px; font: 700 .95rem/1 var(--body); }
-
-/* play level */
-#levels {
-  position: absolute; top: 16px; left: 128px; display: flex; gap: 4px;
-  padding: 4px; border-radius: 999px;
-  background: var(--cream); border: 2.5px solid var(--ink); box-shadow: 0 4px 0 var(--ink);
-}
-#levels button {
-  pointer-events: auto; cursor: pointer;
-  padding: 5px 13px 6px; border: 0; border-radius: 999px; background: transparent;
-  font: 700 .88rem/1 var(--body); color: var(--ink); opacity: .55;
-  transition: background .2s, opacity .2s, color .2s;
-}
-#levels button:hover { opacity: .9; }
-#levels button[aria-pressed="true"] { background: var(--crimson); color: var(--cream); opacity: 1; }
+#sound { left: 72px; }
+#home svg { width: 24px; }
+#lang { left: 128px; font: 700 .95rem/1 var(--body); }
 
 /* digging + watering */
 #dig-hit { cursor: pointer; }
@@ -196,9 +161,6 @@ button { font: inherit; }
 #can svg { width: 100%; height: 100%; }
 #can:active { cursor: grabbing; }
 
-@media (max-width: 560px) {
-  #levels { top: 70px; left: 16px; }
-}
 #sound .mute { display: none; }
 #sound[aria-pressed="false"] .wave { display: none; }
 #sound[aria-pressed="false"] .mute { display: block; }
@@ -280,9 +242,9 @@ button { font: inherit; }
   translate: -50% 0; visibility: hidden;
 }
 .basket-body { position: absolute; inset: 0; will-change: transform; }
-.b-back, .b-front, .b-apples { position: absolute; inset: 0; width: 100%; height: 100%; }
-.b-apple { position: absolute; width: 26.15%; aspect-ratio: 240 / 260; }
-.b-apple svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.b-back, .b-front, .b-fruits { position: absolute; inset: 0; width: 100%; height: 100%; }
+.b-fruit { position: absolute; width: 26.15%; aspect-ratio: 240 / 260; }
+.b-fruit svg { width: 100%; height: 100%; overflow: visible; display: block; }
 .basket-tag {
   position: absolute; left: 50%; top: -22%; translate: -50% 0; rotate: -4deg; z-index: 2;
   display: flex; align-items: baseline; gap: 6px; white-space: nowrap;
@@ -302,6 +264,14 @@ button { font: inherit; }
 }
 #finale-title { margin: 0; font: 400 clamp(2.2rem, 7vw, 3.4rem)/1.2 var(--display); color: var(--crimson); }
 #finale p { margin: 4px auto 18px; max-width: 34ch; font: 500 1.15rem/1.6 var(--body); }
+.finale-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+#to-orchard {
+  cursor: pointer; padding: 10px 22px 12px; border-radius: 999px;
+  font: 400 1.3rem/1.2 var(--display); color: var(--ink);
+  background: var(--cream); border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink);
+  transition: box-shadow .15s, transform .15s;
+}
+#to-orchard:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ink); }
 #replay {
   cursor: pointer; padding: 10px 26px 12px; border-radius: 999px;
   font: 400 1.45rem/1.2 var(--display); color: var(--cream);
@@ -352,6 +322,11 @@ button { font: inherit; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rays, .cloud, .apple-float, .apple-shadow, .apple-node svg, #climb-all svg, #tap-hint { animation: none; }
+  .rays, .cloud, .fruit-float, .fruit-shadow, .fruit-node svg, #climb-all svg, #tap-hint { animation: none; }
   .cloud { transform: translateX(20vw); }
 }
+
+/* ---------- ground crops (potato) ---------- */
+.kind-ground .fruit-node svg { animation: none; transform-origin: 50% 50%; }
+#plant-hit { cursor: grab; }
+#plant-hit:active { cursor: grabbing; }

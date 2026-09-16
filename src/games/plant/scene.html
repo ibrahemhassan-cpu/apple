@@ -1,37 +1,9 @@
-<!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>بستان التفاحة</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;700;800&family=Lalezar&display=swap">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-
 <svg class="defs" width="0" height="0" aria-hidden="true" focusable="false">
   <defs>
-    <radialGradient id="g-skin" gradientUnits="userSpaceOnUse" cx="-34" cy="-40" r="170" fx="-48" fy="-56">
-      <stop offset="0" stop-color="#FF9A86"/>
-      <stop offset=".3" stop-color="#EE3B4E"/>
-      <stop offset=".72" stop-color="#B0142D"/>
-      <stop offset="1" stop-color="#6E0B1D"/>
-    </radialGradient>
-    <radialGradient id="g-flesh" gradientUnits="userSpaceOnUse" cx="-30" cy="0" r="120">
-      <stop offset="0" stop-color="#FFFCEB"/>
-      <stop offset=".7" stop-color="#FCEFC7"/>
-      <stop offset="1" stop-color="#F1D591"/>
-    </radialGradient>
     <radialGradient id="g-shine">
       <stop offset="0" stop-color="#fff" stop-opacity=".75"/>
       <stop offset="1" stop-color="#fff" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="g-leaf" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#9BDB6A"/>
-      <stop offset="1" stop-color="#2E8B45"/>
-    </linearGradient>
     <linearGradient id="g-trunk" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#4A2A18"/>
       <stop offset=".35" stop-color="#8A5634"/>
@@ -43,21 +15,7 @@
       <stop offset=".45" stop-color="#3F8A45"/>
       <stop offset="1" stop-color="#2C6636"/>
     </linearGradient>
-    <symbol id="apple" viewBox="-120 -140 240 260">
-      <path d="M2,-70 C4,-92 10,-110 20,-124" fill="none" stroke="#5B3A1E" stroke-width="9" stroke-linecap="round"/>
-      <path d="M0,-72 C22,-96 78,-98 102,-40 C124,12 98,86 58,104 C40,112 20,104 0,100 C-20,104 -40,112 -58,104 C-98,86 -124,12 -102,-40 C-78,-98 -22,-96 0,-72 Z" fill="url(#g-skin)"/>
-      <ellipse cx="-52" cy="-30" rx="17" ry="32" fill="url(#g-shine)" transform="rotate(22 -52 -30)"/>
-      <circle cx="-34" cy="-62" r="6" fill="#fff" opacity=".55"/>
-      <path d="M16,-104 C34,-136 76,-138 96,-120 C80,-96 40,-88 16,-104 Z" fill="url(#g-leaf)"/>
-      <path d="M20,-106 C44,-116 70,-121 92,-120" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="3"/>
-    </symbol>
-    <g id="cut-left">
-      <path d="M0,-72 C-22,-96 -78,-98 -102,-40 C-124,12 -98,86 -58,104 C-40,112 -20,104 0,100 Z" fill="#C21E36"/>
-      <path d="M-3,-60 C-24,-82 -72,-84 -92,-38 C-112,10 -88,80 -54,94 C-38,101 -20,94 -3,90 Z" fill="url(#g-flesh)"/>
-      <path d="M-3,-44 C-26,-20 -26,44 -3,66" fill="none" stroke="#E3C07A" stroke-width="5" stroke-linecap="round"/>
-      <ellipse cx="-15" cy="-4" rx="6" ry="12" fill="#4B2A17" transform="rotate(-14 -15 -4)"/>
-      <ellipse cx="-15" cy="28" rx="6" ry="12" fill="#4B2A17" transform="rotate(14 -15 28)"/>
-    </g>
+  <!--FRUIT_DEFS-->
   </defs>
 </svg>
 
@@ -85,21 +43,15 @@
       <path d="M-2000,1700 C-1000,1600 -500,1680 0,1690 C300,1696 600,1640 1000,1650 C1500,1662 1900,1700 2800,1680 L2800,1800 L-2000,1800 Z" fill="#86C46A"/>
 
       <g id="tree" style="visibility:hidden">
-        <path id="trunk" fill="url(#g-trunk)" d="M330,1768 C360,1745 372,1700 374,1620 L378,1080 C376,1030 356,985 318,945 L340,928 C372,958 392,990 400,1020 C410,985 434,950 468,922 L488,940 C452,975 426,1030 424,1080 L428,1620 C430,1700 440,1745 474,1768 Z"/>
+        <path id="trunk" fill="url(#g-trunk)" d=""/>
         <g id="canopy-back"></g>
         <g id="branches" fill="none" stroke="#5E3822" stroke-linecap="round">
-          <path d="M336,948 C300,900 250,860 190,835" stroke-width="16"/>
-          <path d="M474,934 C520,890 580,860 640,850" stroke-width="16"/>
-          <path d="M400,1030 C396,930 376,820 350,720" stroke-width="18"/>
-          <path d="M350,720 C330,640 300,590 250,540" stroke-width="12"/>
-          <path d="M350,720 C380,640 430,560 470,440" stroke-width="12"/>
-          <path d="M474,934 C500,840 540,740 590,640" stroke-width="13"/>
-          <path d="M590,640 C620,600 650,580 690,570" stroke-width="8"/>
-          <path d="M190,835 C160,800 140,760 130,720" stroke-width="8"/>
         </g>
         <g id="canopy-front"></g>
         <g id="speckles"></g>
       </g>
+
+      <g id="plant" style="visibility:hidden"></g>
 
       <g id="sprout" style="visibility:hidden">
         <path d="M400,1754 C400,1734 397,1716 402,1698" fill="none" stroke="#5BAF4E" stroke-width="6" stroke-linecap="round"/>
@@ -109,6 +61,7 @@
       <ellipse id="ripple" cx="400" cy="1752" rx="60" ry="13" fill="none" stroke="#FFE7A3" stroke-width="4" opacity="0"/>
 
       <path id="ground-path" fill="url(#g-ground)" d="M-2000,1752 C-900,1700 -300,1770 200,1748 C500,1734 800,1762 1100,1744 C1600,1720 2000,1760 2800,1740 L2800,1800 L-2000,1800 Z"/>
+      <g id="underground" style="visibility:hidden"></g>
       <g id="tufts"></g>
 
       <g id="dig" style="visibility:hidden">
@@ -161,8 +114,17 @@
           <circle cx="0" cy="-226" r="8" fill="#FFF4DF"/>
         </g>
       </g>
+
+      <g id="pole" style="visibility:hidden">
+        <line id="pole-stick" x1="0" y1="0" x2="0" y2="0" stroke="#6B4423" stroke-width="12" stroke-linecap="round"/>
+        <line id="pole-shine" x1="0" y1="0" x2="0" y2="0" stroke="#D9A866" stroke-width="4" stroke-linecap="round"/>
+        <g id="pole-net">
+          <path d="M-30,-2 C-28,40 28,40 30,-2" fill="rgba(255,244,223,.35)" stroke="#FFF4DF" stroke-width="3" stroke-dasharray="6 5"/>
+          <ellipse cx="0" cy="-2" rx="30" ry="8" fill="none" stroke="#C9955A" stroke-width="5"/>
+        </g>
+      </g>
     </svg>
-    <div id="apples"></div>
+    <div id="fruits"></div>
     <div id="flutters"></div>
   </div>
 
@@ -171,30 +133,13 @@
   <section id="intro" class="layer">
     <p class="eyebrow" data-i18n="eyebrow">حكاية من بستان صغير</p>
     <h1 id="title" data-i18n="title">بستان التفاحة</h1>
-    <button id="apple-btn" type="button" data-i18n-aria="openAria" aria-label="افتح التفاحة">
-      <span class="apple-glow"></span>
-      <span class="apple-shadow"></span>
-      <span class="apple-float">
-        <span class="apple-tilt">
-          <span class="apple-squash">
-            <svg class="half half-l" viewBox="-120 -140 240 260">
-              <path class="seam" d="M0,-72 C22,-96 78,-98 102,-40 C124,12 98,86 58,104 C40,112 20,104 0,100 C-20,104 -40,112 -58,104 C-98,86 -124,12 -102,-40 C-78,-98 -22,-96 0,-72 Z" fill="url(#g-skin)"/>
-              <g class="skin">
-                <path d="M0,-72 C-22,-96 -78,-98 -102,-40 C-124,12 -98,86 -58,104 C-40,112 -20,104 0,100 Z" fill="url(#g-skin)"/>
-                <ellipse cx="-52" cy="-30" rx="17" ry="32" fill="url(#g-shine)" transform="rotate(22 -52 -30)"/>
-                <circle cx="-34" cy="-62" r="6" fill="#fff" opacity=".55"/>
-              </g>
-              <use class="cut" href="#cut-left" opacity="0"/>
-            </svg>
-            <svg class="half half-r" viewBox="-120 -140 240 260">
-              <path d="M2,-70 C4,-92 10,-110 20,-124" fill="none" stroke="#5B3A1E" stroke-width="9" stroke-linecap="round"/>
-              <path class="skin" d="M0,-72 C22,-96 78,-98 102,-40 C124,12 98,86 58,104 C40,112 20,104 0,100 Z" fill="url(#g-skin)"/>
-              <g class="cut" opacity="0"><use href="#cut-left" transform="scale(-1 1)"/></g>
-              <path d="M16,-104 C34,-136 76,-138 96,-120 C80,-96 40,-88 16,-104 Z" fill="url(#g-leaf)"/>
-            </svg>
-            <svg class="crack" viewBox="-120 -140 240 260">
-              <path d="M0,-72 L5,-42 L-4,-14 L6,16 L-3,48 L0,100" fill="none" stroke="#FFE7A3" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+    <button id="fruit-btn" type="button" data-i18n-aria="openAria" aria-label="افتح التفاحة">
+      <span class="fruit-glow"></span>
+      <span class="fruit-shadow"></span>
+      <span class="fruit-float">
+        <span class="fruit-tilt">
+          <span class="fruit-squash">
+            <!--FRUIT_INTRO-->
             <span class="flash"></span>
           </span>
         </span>
@@ -206,12 +151,10 @@
   <canvas id="fx" class="layer"></canvas>
 
   <div id="hud" class="layer">
+    <button id="home" type="button" data-i18n-aria="home" aria-label="البستان">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10v9.5h4.5v-5.5h4v5.5h4.5V10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>
+    </button>
     <button id="lang" type="button" data-i18n-aria="langAria" aria-label="English">EN</button>
-    <div id="levels" role="group" data-i18n-aria="levelAria" aria-label="مستوى اللعب">
-      <button type="button" data-level="easy" data-i18n="levelEasy">سهل</button>
-      <button type="button" data-level="mid" data-i18n="levelMid">متوسط</button>
-      <button type="button" data-level="high" data-i18n="levelHigh">صعب</button>
-    </div>
     <button id="sound" type="button" aria-pressed="true" data-i18n-aria="soundAria" aria-label="الصوت">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="mute" d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
@@ -244,7 +187,7 @@
           <ellipse cx="130" cy="104" rx="112" ry="28" fill="#5A3418"/>
           <path d="M18,104 A112,28 0 0 1 242,104" fill="none" stroke="#B97436" stroke-width="12"/>
         </svg>
-        <div class="b-apples"></div>
+        <div class="b-fruits"></div>
         <svg class="b-front" viewBox="0 0 260 230" aria-hidden="true">
           <defs>
             <linearGradient id="g-wicker" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E6A862"/><stop offset="1" stop-color="#9C5E2A"/></linearGradient>
@@ -269,12 +212,15 @@
     <div id="finale" role="dialog" aria-labelledby="finale-title">
       <h2 id="finale-title" data-i18n="finaleTitle">برافو! السلة اتملت</h2>
       <p data-i18n="finaleBody">قطفت ١٠ تفاحات من الشجرة اللي زرعتها بنفسك.</p>
-      <button id="replay" type="button" data-i18n="replay">ازرع تفاحة جديدة</button>
+      <div class="finale-actions">
+        <button id="replay" type="button" data-i18n="replay">ازرع تفاحة جديدة</button>
+        <button id="to-orchard" type="button" data-i18n="home">البستان</button>
+      </div>
     </div>
   </div>
 
   <div id="overlay" class="layer">
-    <div id="seed" role="button" tabindex="-1" data-i18n-aria="seedAria" aria-label="ازرع البذرة"><span class="seed-ring"></span><span class="seed-glow"></span><svg viewBox="-20 -30 40 60"><path d="M0,-26 C12,-12 16,6 12,16 C8,26 -8,26 -12,16 C-16,6 -12,-12 0,-26Z" fill="#5A3319"/><ellipse cx="-4" cy="-4" rx="3" ry="7" fill="#9A6A3F"/></svg></div>
+    <div id="seed" role="button" tabindex="-1" data-i18n-aria="seedAria" aria-label="ازرع البذرة"><span class="seed-ring"></span><span class="seed-glow"></span><!--FRUIT_SEED--></div>
     <div id="can" role="button" tabindex="-1" aria-hidden="true">
       <svg viewBox="0 0 120 100" aria-hidden="true">
         <path d="M34,34 C34,18 62,18 62,34" fill="none" stroke="#3F7FA6" stroke-width="9" stroke-linecap="round"/>
@@ -288,13 +234,3 @@
     <svg id="hand" viewBox="0 0 48 56" aria-hidden="true"><path d="M17 30V8a4.5 4.5 0 0 1 9 0v14l2-.6a4.5 4.5 0 0 1 5 2.6l.5-.2a4.3 4.3 0 0 1 5.5 2.8 4.3 4.3 0 0 1 5 4V41c0 8-6 13-14 13h-3c-5 0-8-2-11-6L7 38a4 4 0 0 1 6-5z" fill="#FFF4DF" stroke="#1B1F3B" stroke-width="3" stroke-linejoin="round"/></svg>
   </div>
 </main>
-
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/MotionPathPlugin.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/DrawSVGPlugin.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/Draggable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/SplitText.min.js"></script>
-<script src="core.js"></script>
-<script src="app.js"></script>
-</body>
-</html>

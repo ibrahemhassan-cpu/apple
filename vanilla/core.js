@@ -10,8 +10,57 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const pick = arr => arr[(Math.random() * arr.length) | 0];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const wait = s => new Promise(r => gsap.delayedCall(s, r));
-const ar = n => n.toLocaleString('ar-EG');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- language: every user-facing string lives here ---------- */
+const STR = {
+  eyebrow:     { ar: 'حكاية من بستان صغير', en: 'A little orchard story' },
+  title:       { ar: 'بستان التفاحة', en: 'The Apple Orchard' },
+  tapHint:     { ar: 'دوس على التفاحة', en: 'Tap the apple' },
+  openAria:    { ar: 'افتح التفاحة', en: 'Open the apple' },
+  seedTitle:   { ar: 'أهو! دي بذرة التفاحة', en: 'There it is — the apple seed' },
+  seedSub:     { ar: 'دوس على البذرة عشان تزرعها… أو اسحبها للأرض', en: 'Tap the seed to plant it — or drag it to the ground' },
+  seedHoleSub: { ar: 'كده تمام! حط البذرة في الحفرة', en: 'Nice hole! Now drop the seed in' },
+  levelAria:   { ar: 'مستوى اللعب', en: 'Play level' },
+  levelEasy:   { ar: 'سهل', en: 'Easy' },
+  levelMid:    { ar: 'متوسط', en: 'Medium' },
+  levelHigh:   { ar: 'صعب', en: 'Hard' },
+  digTitle:    { ar: 'يلا نحفر الأرض', en: 'Let’s dig the soil' },
+  digSub:      { ar: 'دوس على الأرض كذا مرة لحد ما تعمل حفرة', en: 'Tap the soil a few times to open a hole' },
+  waterTitle:  { ar: 'البذرة عطشانة', en: 'The seed is thirsty' },
+  waterSub:    { ar: 'امسك الجردل عشان تسقيها', en: 'Hold the watering can to pour' },
+  sunTitle:    { ar: 'ناقص شمس', en: 'It needs sunshine' },
+  sunSub:      { ar: 'اسحب الشمس لفوق عشان تدفّي الأرض', en: 'Drag the sun up to warm the soil' },
+  seedAria:    { ar: 'ازرع البذرة', en: 'Plant the seed' },
+  bravo:       { ar: 'برافووو', en: 'Bravooo' },
+  grownTitle:  { ar: 'شجرتك كبرت وطرحت تفاح', en: 'Your tree grew its apples' },
+  grownSub:    { ar: 'بس التفاح عالي… محتاجين سلم', en: 'But they are high up — we need a ladder' },
+  ladderTitle: { ar: 'السلم جاهز', en: 'The ladder is ready' },
+  ladderSub:   { ar: 'اطلع بالسهم، أو دوس على أي درجة', en: 'Use the arrow, or tap any rung' },
+  goTop:       { ar: 'اطلع للآخر', en: 'Straight to the top' },
+  upAria:      { ar: 'اطلع درجة', en: 'Climb up one rung' },
+  downAria:    { ar: 'انزل درجة', en: 'Climb down one rung' },
+  pickSub:     { ar: 'اقطف التفاحة واسحبها للسلة… أو دوس عليها بس', en: 'Drag an apple to the basket — or just tap it' },
+  topSub:      { ar: 'كل التفاح في متناول إيدك دلوقتي', en: 'Every apple is within reach now' },
+  higherSub:   { ar: 'التفاحة دي لسه عالية… اطلع أكتر', en: 'That one is still too high — climb higher' },
+  of:          { ar: 'من', en: 'of' },
+  appleAria:   { ar: 'تفاحة', en: 'Apple' },
+  soundAria:   { ar: 'الصوت', en: 'Sound' },
+  langAria:    { ar: 'English', en: 'العربية' },
+  finaleTitle: { ar: 'برافو! السلة اتملت', en: 'Bravo! The basket is full' },
+  finaleBody:  { ar: 'قطفت ١٠ تفاحات من الشجرة اللي زرعتها بنفسك.', en: 'Ten apples picked from the tree you planted yourself.' },
+  replay:      { ar: 'ازرع تفاحة جديدة', en: 'Plant a new apple' },
+};
+let lang = 'ar';
+/* play level: 'easy' plants itself, 'mid' adds digging + watering, 'high' adds the sun too */
+let level = 'easy';
+try {
+  lang = localStorage.getItem('orchard-lang') === 'en' ? 'en' : 'ar';
+  const L = localStorage.getItem('orchard-level');
+  if (L === 'mid' || L === 'high' || L === 'easy') level = L;
+} catch (e) { /* private mode */ }
+const t = key => (STR[key] && STR[key][lang]) || '';
+const num = n => n.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US');
 if (reduceMotion) gsap.globalTimeline.timeScale(1.6);
 
 function svgEl(tag, attrs, parent) {
@@ -59,6 +108,12 @@ function renderCam() {
 }
 function toScreen(x, y) {
   return { x: (x - view.vbX) * view.s + par.x * 0.35, y: (view.vh - H * view.s) + y * view.s + worldY };
+}
+function toWorld(sx, sy) {
+  return {
+    x: (sx - par.x * 0.35) / view.s + view.vbX,
+    y: (sy - (view.vh - H * view.s) - worldY) / view.s
+  };
 }
 const parTo = gsap.quickTo(par, 'x', { duration: 1.4, ease: 'power3', onUpdate: renderCam });
 
@@ -145,12 +200,18 @@ function buildCanopy() {
   gsap.set('#trunk', { scaleY: 0, scaleX: .3, svgOrigin: '400 1768' });
 }
 
-const rungs = [];
+const rungs = [], rungHits = [];
+const RUNGS_CLIMBABLE = 12;
 function buildLadder() {
-  const g = $('#ladder-rungs');
+  const g = $('#ladder-rungs'), hits = $('#ladder-hits');
   for (let k = 1; k <= 16; k++) {
     const y = GROUND - k * RUNG, xc = ladderX(y);
     rungs.push(svgEl('line', { x1: xc - 40, y1: y, x2: xc + 40, y2: y, class: 'rung' }, g));
+    if (k <= RUNGS_CLIMBABLE) {
+      const hit = svgEl('line', { x1: xc - 46, y1: y, x2: xc + 46, y2: y, class: 'rung-hit' }, hits);
+      hit.dataset.rung = k;
+      rungHits.push(hit);
+    }
   }
   gsap.set(rungs, { scaleX: 0, transformOrigin: '50% 50%' });
   gsap.set('#ladder .rail, #ladder .rail-hi', { drawSVG: '0%' });
@@ -163,7 +224,7 @@ function buildApples() {
     const el = document.createElement('div');
     el.className = 'apple-node';
     el.setAttribute('role', 'button');
-    el.setAttribute('aria-label', `تفاحة ${ar(i + 1)}`);
+    el.setAttribute('aria-label', `${t('appleAria')} ${num(i + 1)}`);
     el.tabIndex = -1;
     el.innerHTML = `<div class="apple-inner"><span class="ring" style="animation-delay:${(i * .37) % 1.9}s"></span>${APPLE_SVG}</div>`;
     el.querySelector('svg').style.animationDelay = `${-rand(0, 3.2)}s`;
@@ -338,6 +399,12 @@ function drawFx(dt) {
     } else if (p.type === 'dust') {
       ctx.fillStyle = p.color; ctx.globalAlpha = a * .5;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (1 + (1 - a) * 2.2), 0, 6.28); ctx.fill();
+    } else if (p.type === 'drop') {
+      ctx.globalAlpha = Math.min(1, a * 2);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, p.size * .5, p.size * 1.5, 0, 0, 6.28);
+      ctx.fill();
     } else if (p.type === 'heart') {
       ctx.save();
       ctx.translate(p.x + Math.sin(p.life * 5 + p.seed) * 8, p.y);
@@ -413,7 +480,22 @@ const Sound = {
   whoosh() { this.noise(.55, { vol: .1, from: 300, to: 2000 }); },
   thud() { this.tone(170, .28, { vol: .38, to: 55 }); },
   step() { this.tone(190 + Math.random() * 40, .07, { type: 'square', vol: .025, to: 110 }); },
+  dig() { this.noise(.18, { vol: .1, from: 900, to: 220 }); this.tone(120 + Math.random() * 30, .12, { vol: .12, to: 70 }); },
+  water() { this.noise(.4, { vol: .05, from: 700, to: 2600 }); },
+  shine() { [784, 1047, 1319].forEach((f, i) => this.tone(f, .5, { type: 'sine', vol: .07, delay: i * .1 })); },
   magic() { [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => this.tone(f, 1, { vol: .06, delay: i * .08 })); },
   land() { this.thud(); [880, 1175].forEach((f, i) => this.tone(f, .3, { type: 'triangle', vol: .08, delay: .05 + i * .07 })); },
   fanfare() { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => this.tone(f, .4, { type: 'triangle', vol: .11, delay: i * .11 })); },
+  /* a room full of hands: dozens of tiny noise claps, densest at the start */
+  applause(dur = 3.4) {
+    if (!this.on || !this.ctx) return;
+    for (let t = 0; t < dur; t += .012 + Math.random() * .045) {
+      const swell = t < .35 ? .45 + t / .35 * .55 : Math.max(.25, 1 - (t - .35) / dur);
+      this.noise(.05 + Math.random() * .05, {
+        vol: (.014 + Math.random() * .03) * swell,
+        from: 1100 + Math.random() * 1600, to: 700 + Math.random() * 900, delay: t
+      });
+    }
+    [0, .9, 1.8].forEach((d, i) => this.tone([1320, 1560, 1760][i], .5, { type: 'triangle', vol: .05, delay: d, to: 1980 }));
+  },
 };

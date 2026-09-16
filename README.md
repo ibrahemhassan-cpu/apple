@@ -1,22 +1,37 @@
-﻿# بستان التفاحة (The Apple Orchard)
+# البستان (The Orchard)
 
-تجربة ويب تفاعلية وقصصية بصرية غنية ومتحركة باللغة العربية، مصممة بتقنيات الويب الحديثة (HTML5, CSS3, JavaScript, GSAP, SVG).
+تجربة ويب تفاعلية بالعربي والإنجليزي: الفاكهة تتفتح، تاخد بذرتها وتزرعها، تكبر، تطلع السلم وتقطف.
+كل فاكهة بتعلّم إزاي بتتزرع وشكل نباتها إيه. معمولة بـ **React** للشاشات و **GSAP + SVG + Canvas** للحركة.
 
-## 🚀 تشغيل المشروع محلياً (Run Locally)
-
-يمكن تشغيل المشروع ببساطة عن طريق فتح ملف `index.html` في أي متصفح حديث، أو تشغيل خادم محلي:
+## التشغيل
 
 ```bash
-# باستخدام npx serve
-npx serve .
-
-# أو باستخدام Python
-python -m http.server 3000
+npm install
+npm run dev      # http://localhost:5179
 ```
 
-## 🌐 النشر على Vercel (Deploy on Vercel)
+## البناء والنشر
 
-المشروع عبارة عن تطبيق ويب ساكن (Static Web Application) لا يتطلب أي خطوات بناء (Build Step):
-1. قم برفع المشروع على GitHub.
-2. توجه إلى [Vercel](https://vercel.com/new).
-3. اختر المستودع (Repository) واضغط على **Deploy**.
+```bash
+npm run build    # الناتج في dist/
+npm run preview  # تجربة نسخة البناء
+```
+
+**Vercel:** ارفع المشروع على GitHub وافتحه في [Vercel](https://vercel.com/new) — بيتعرف على Vite لوحده
+(Build: `npm run build`، Output: `dist`).
+
+## هيكل المشروع
+
+```
+src/
+  main.jsx, App.jsx          الدخول والتنقل بين الشاشات
+  app.css                    الألوان والخطوط وشكل شاشة البستان
+  i18n/strings.js            كل الكلام بالعربي والإنجليزي
+  settings/                  اللغة والمستوى والصوت (بتتحفظ)
+  fruits/registry.js         سجل الفواكه
+  fruits/art.jsx             رسومات الفواكه وبذورها
+  screens/                   البستان + كارت البذرة
+  games/apple/               لعبة التفاح: scene.html + scene.css + engine.js
+vanilla/                     النسخة القديمة من غير React (بتشتغل بفتح index.html)
+FRUITS.md                    الدليل الكامل وخطوات إضافة فاكهة
+```
