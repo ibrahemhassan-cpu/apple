@@ -133,13 +133,17 @@ function barkTexture(B, seed) {
   const c = document.createElement('canvas');
   c.width = 256; c.height = 512;
   const g = c.getContext('2d');
-  const tiled = draw => { for (const dx of [-256, 0, 256]) for (const dy of [-512, 0, 512]) draw(dx, dy); };
+  // draw wrapped across an edge only when the shape (reaching `reach` px from x, y) actually crosses it
+  const offsets = (v, reach, size) => (v - reach < 0 ? [0, size] : v + reach > size ? [0, -size] : [0]);
+  const tiled = (x, y, reach, draw) => {
+    for (const dx of offsets(x, reach, 256)) for (const dy of offsets(y, reach, 512)) draw(dx, dy);
+  };
   g.fillStyle = B.base; g.fillRect(0, 0, 256, 512);
   for (let i = 0; i < 160; i++) {
     const fill = r() > .5 ? B.light : B.dark, alpha = .12 + r() * .22;
     const x = r() * 256, y = r() * 512, w = 10 + r() * 34, h = 26 + r() * B.plate, rot = (r() - .5) * .2;
     g.fillStyle = fill; g.globalAlpha = alpha;
-    tiled((dx, dy) => { g.beginPath(); g.ellipse(x + dx, y + dy, w / 2, h / 2, rot, 0, 6.29); g.fill(); });
+    tiled(x, y, h / 2 + 2, (dx, dy) => { g.beginPath(); g.ellipse(x + dx, y + dy, w / 2, h / 2, rot, 0, 6.29); g.fill(); });
   }
   g.strokeStyle = B.crack; g.lineCap = 'round';
   for (let i = 0; i < B.cracks; i++) {
@@ -149,17 +153,20 @@ function barkTexture(B, seed) {
     pts.push([x, y]);
     while (y < end) { y += 10 + r() * 14; x += (r() - .5) * 7; pts.push([x, y]); }
     g.globalAlpha = .45 + r() * .45; g.lineWidth = 1.2 + r() * B.crackW;
-    tiled((dx, dy) => {
+    const xs = pts.map(p => p[0]), top = pts[0][1];
+    const dxs = [0, ...(Math.min(...xs) - 5 < 0 ? [256] : []), ...(Math.max(...xs) + 5 > 256 ? [-256] : [])];
+    const dys = [0, ...(y + 5 > 512 ? [-512] : []), ...(top - 5 < 0 ? [512] : [])];
+    dxs.forEach(dx => dys.forEach(dy => {
       g.beginPath();
       pts.forEach(([px, py], k) => (k ? g.lineTo(px + dx, py + dy) : g.moveTo(px + dx, py + dy)));
       g.stroke();
-    });
+    }));
   }
   if (B.lichen) {
     for (let i = 0; i < 40; i++) {
       const x = r() * 256, y = r() * 512, w = 4 + r() * 14, h = 3 + r() * 9, rot = r() * 3;
       g.fillStyle = r() > .5 ? '#9A9C84' : '#7F8A6A'; g.globalAlpha = .12 + r() * .16;
-      tiled((dx, dy) => { g.beginPath(); g.ellipse(x + dx, y + dy, w, h, rot, 0, 6.29); g.fill(); });
+      tiled(x, y, w + 2, (dx, dy) => { g.beginPath(); g.ellipse(x + dx, y + dy, w, h, rot, 0, 6.29); g.fill(); });
     }
   }
   g.globalAlpha = 1;
@@ -359,14 +366,12 @@ function patch(material, key, uniforms, { head, begin, move, frag }) {
 /* space colonisation: scatter points through the crown's shape, and let branches grow toward them */
 function growSkeleton(F, anchors, r) {
   const nodes = [];
-  const grid = new Map(), cell = F.influence;
-  const cellKey = (x, y, z) => `${Math.floor(x / cell)},${Math.floor(y / cell)},${Math.floor(z / cell)}`;
+  let fresh = [];                                  // nodes the attraction points haven't been measured against yet
   const add = (p, parent) => {
     const n = { p, parent, kids: [], r: 0, len: 0, i: nodes.length };
     if (parent) parent.kids.push(n);
     nodes.push(n);
-    const k = cellKey(p.x, p.y, p.z);
-    (grid.get(k) || grid.set(k, []).get(k)).push(n);
+    fresh.push(n);
     return n;
   };
 
@@ -394,22 +399,24 @@ function growSkeleton(F, anchors, r) {
     for (let i = 0; i < 4; i++) pts.push(new Vector3(a.x + (r() - .5) * 50, a.y + (r() - .2) * 40, a.z * (.4 + r() * .4)));
   });
 
-  let live = pts;
+  // each point remembers its nearest node so far; nodes are never removed, so every round only the
+  // newly grown ones need checking (much faster on a phone than searching the whole tree again)
+  const kill2 = F.kill * F.kill;
+  let live = pts.map(p => ({ p, best: null, bd2: F.influence * F.influence }));
   for (let iter = 0; iter < 400 && live.length; iter++) {
-    const pull = new Map(), next = [];
-    for (const p of live) {
-      let best = null, bd = F.influence;
-      const ix = Math.floor(p.x / cell), iy = Math.floor(p.y / cell), iz = Math.floor(p.z / cell);
-      for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let c = -1; c <= 1; c++) {
-        const list = grid.get(`${ix + a},${iy + b},${iz + c}`);
-        if (!list) continue;
-        for (const n of list) { const d = n.p.distanceTo(p); if (d < bd) { bd = d; best = n; } }
+    const pull = new Map(), next = [], check = fresh;
+    fresh = [];
+    for (const a of live) {
+      const { x, y, z } = a.p;
+      for (const n of check) {
+        const dx = n.p.x - x, dy = n.p.y - y, dz = n.p.z - z, d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 < a.bd2) { a.bd2 = d2; a.best = n; }
       }
-      if (best && bd < F.kill) continue;                              // reached: this point is used up
-      next.push(p);
-      if (!best) continue;
-      const v = pull.get(best) || pull.set(best, new Vector3()).get(best);
-      v.add(new Vector3().subVectors(p, best.p).normalize());
+      if (a.best && a.bd2 < kill2) continue;                          // reached: this point is used up
+      next.push(a);
+      if (!a.best) continue;
+      const v = pull.get(a.best) || pull.set(a.best, new Vector3()).get(a.best);
+      v.add(new Vector3().subVectors(a.p, a.best.p).normalize());
     }
     live = next;
     if (!pull.size) {
@@ -613,21 +620,23 @@ function buildPotatoPlant(P, r) {
 /* =====================================================================
    the renderer
    ===================================================================== */
-export function createFlora({ canvas, spec, reduceMotion }) {
+export function createFlora({ canvas, spec, reduceMotion, quality }) {
   const F = { ...spec.flora, tropism: new Vector3(...(spec.flora.tropism || [0, 0, 0])) };
+  let Q = quality;
   const noop = () => {};
   let renderer;
   try {
-    renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+    renderer = new WebGLRenderer({ canvas, antialias: Q.name !== 'low', alpha: true, powerPreference: 'high-performance' });
   } catch (e) {
     console.warn('WebGL is not available — the plant will not be drawn', e);
-    return { growth: {}, pose: {}, show: noop, sync: noop, render: noop, resize: noop, shake: noop, detach: noop, hit: () => false, destroy: noop };
+    return { growth: {}, pose: {}, show: noop, sync: noop, render: noop, resize: noop, shake: noop, detach: noop, hit: () => false, setQuality: noop, destroy: noop };
   }
   renderer.setClearColor(0x000000, 0);
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = Q.shadows > 0;
   renderer.shadowMap.type = PCFShadowMap;
+  renderer.shadowMap.autoUpdate = false;      // shadows are redrawn only when the plant itself changes, not for the breeze
 
   const r = rng(F.seed || 7);
   const scene = new Scene();
@@ -643,8 +652,8 @@ export function createFlora({ canvas, spec, reduceMotion }) {
   const [lx, ly, lr] = F.light;              // what the sun looks at, and how wide its shadow must reach
   sun.target.position.set(lx, -ly, 0);
   sun.position.set(lx + 900, -ly + 1000, 1100);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.castShadow = Q.shadows > 0;
+  sun.shadow.mapSize.set(Q.shadows || 512, Q.shadows || 512);
   Object.assign(sun.shadow.camera, { left: -lr, right: lr, top: lr, bottom: -lr, near: 200, far: 4000 });
   sun.shadow.bias = -.001;
   sun.shadow.normalBias = 2.5;
@@ -670,9 +679,13 @@ export function createFlora({ canvas, spec, reduceMotion }) {
     return { m, depth };
   }
 
+  const leafMeshes = [];
   function leafMesh(list, { texture, curl, fold, roughness, back, young }) {
     const geo = keep(leafGeometry(curl, fold));
     const n = list.length;
+    // shuffled, so drawing only some of them thins the whole crown evenly; the ones drawn are a bit bigger to make up
+    for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+    const fill = Math.pow(1 / Q.leaves, .3);
     const aStart = new Float32Array(n), aPhase = new Float32Array(n), aYoung = new Float32Array(n);
     const frag = {
       head: 'uniform vec3 uBack; uniform vec3 uYoungColor; varying float vYoung;\n',
@@ -681,7 +694,7 @@ export function createFlora({ canvas, spec, reduceMotion }) {
         if (!gl_FrontFacing) diffuseColor.rgb *= uBack;
       `,
     };
-    const m = keep(new MeshStandardMaterial({ map: texture, alphaTest: .5, side: DoubleSide, roughness, metalness: 0, alphaToCoverage: true }));
+    const m = keep(new MeshStandardMaterial({ map: texture, alphaTest: .5, side: DoubleSide, roughness, metalness: 0, alphaToCoverage: Q.coverage }));
     patch(m, `leaf-${spec.id}`, { ...U, uBack: { value: new Color(...back) }, uYoungColor: { value: new Color(young || '#9A3B22') } },
       { head: LEAF_HEAD, begin: LEAF_BEGIN, move: LEAF_MOVE, frag });
     const depth = keep(new MeshDepthMaterial({ depthPacking: RGBADepthPacking, map: texture, alphaTest: .5 }));
@@ -695,7 +708,7 @@ export function createFlora({ canvas, spec, reduceMotion }) {
       if (Z.lengthSq() < 1e-4) Z.copy(perpendicular(Y));
       Z.normalize();
       X.crossVectors(Y, Z).normalize();
-      M.makeBasis(X.multiplyScalar(L.width), Y.multiplyScalar(L.len), Z.multiplyScalar(L.len)).setPosition(L.p);
+      M.makeBasis(X.multiplyScalar(L.width * fill), Y.multiplyScalar(L.len * fill), Z.multiplyScalar(L.len * fill)).setPosition(L.p);
       mesh.setMatrixAt(i, M);
       mesh.setColorAt(i, col.setRGB(...L.color));
       aStart[i] = L.start; aPhase[i] = r() * 3; aYoung[i] = L.young;
@@ -706,6 +719,9 @@ export function createFlora({ canvas, spec, reduceMotion }) {
     mesh.customDepthMaterial = depth;
     mesh.castShadow = mesh.receiveShadow = true;
     mesh.frustumCulled = false;
+    mesh.userData.total = n;
+    mesh.count = Math.max(1, Math.round(n * Q.leaves));
+    leafMeshes.push(mesh);
     return mesh;
   }
 
@@ -799,10 +815,19 @@ export function createFlora({ canvas, spec, reduceMotion }) {
 
   /* ---------- per frame ---------- */
   const view = { L: 0, R: 800, T: 0, B: 1800, tx: 0, ty: 0 };
-  let lastFlowers = -1, faded = false;
+  const size = { w: 300, h: 150 };
+  let lastFlowers = -1, faded = false, lastKey = '', lastDraw = -1;
 
   function render(time) {
     if (!root.visible) return;
+    // draw when something really moved; the breeze alone only at Q.calmFps
+    const plantKey = `${growth.wood},${growth.leaves},${growth.flowers},${pose.x},${pose.y},${pose.rot},${pose.sx},${pose.sy},${pose.opacity}`;
+    const key = `${view.L},${view.R},${view.T},${view.B},${view.tx},${view.ty}|${plantKey}`;
+    const shaking = time - U.uShake.value.z < 1.5;
+    if (key === lastKey && !shaking && time - lastDraw < 1 / Q.calmFps - .004) return;
+    if (plantKey !== lastKey.split('|')[1]) renderer.shadowMap.needsUpdate = true;   // the plant changed shape
+    lastKey = key;
+    lastDraw = time;
     canvas.style.transform = `translate3d(${view.tx}px,${view.ty}px,0)`;
     camera.left = view.L; camera.right = view.R; camera.top = -view.T; camera.bottom = -view.B;
     camera.updateProjectionMatrix();
@@ -833,15 +858,57 @@ export function createFlora({ canvas, spec, reduceMotion }) {
     renderer.render(scene, camera);
   }
 
+  // compile the shaders now, while the intro plays, instead of stalling the moment the tree starts to grow.
+  // compileAsync lets phones that can compile in the background do it without freezing the page; the shadow
+  // shaders aren't part of that, so they get one invisible frame of their own a moment later
+  let destroyed = false;
+  root.visible = true;
+  const compiled = renderer.compileAsync(scene, camera);
+  root.visible = false;
+  compiled.then(() => setTimeout(() => {
+    if (destroyed || root.visible || !renderer.shadowMap.enabled) return;
+    root.visible = true;
+    renderer.shadowMap.needsUpdate = true;
+    renderer.render(scene, camera);
+    root.visible = false;
+  }, 300)).catch(() => {});
+
   return {
     growth, pose,
-    show() { root.visible = true; canvas.style.visibility = 'visible'; },
+    shown: 0,
+    show() {
+      root.visible = true; canvas.style.visibility = 'visible'; renderer.shadowMap.needsUpdate = true;
+      this.shown = performance.now() / 1000;
+    },
     /* the visible world rectangle (world units) and where the canvas must sit to cover the screen */
     sync(v) { Object.assign(view, v); },
     render,
     resize(w, h) {
-      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, w < 700 ? 1.5 : 1.75));
+      Object.assign(size, { w, h });
+      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, Q.dpr));
       renderer.setSize(w, h, true);
+      lastKey = '';
+    },
+    /* step down (or up) while playing: sharpness, shadows, how many leaves */
+    setQuality(q) {
+      Q = q;
+      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, Q.dpr));
+      renderer.setSize(size.w, size.h, true);
+      const shadows = Q.shadows > 0;
+      if (shadows !== renderer.shadowMap.enabled || (shadows && sun.shadow.mapSize.x !== Q.shadows)) {
+        renderer.shadowMap.enabled = shadows;
+        sun.castShadow = shadows;
+        if (shadows) sun.shadow.mapSize.set(Q.shadows, Q.shadows);
+        sun.shadow.map?.dispose();
+        sun.shadow.map = null;
+        scene.traverse(o => { if (o.material) o.material.needsUpdate = true; });
+      }
+      leafMeshes.forEach(mesh => {
+        mesh.count = Math.max(1, Math.round(mesh.userData.total * Q.leaves));
+        if (mesh.material.alphaToCoverage !== Q.coverage) { mesh.material.alphaToCoverage = Q.coverage; mesh.material.needsUpdate = true; }
+      });
+      renderer.shadowMap.needsUpdate = true;
+      lastKey = '';
     },
     /* a shiver through the leaves around a point */
     shake(x, y, k = 1, radius = 200) {
@@ -856,6 +923,7 @@ export function createFlora({ canvas, spec, reduceMotion }) {
       return e <= 1 || (Math.abs(x - F.base[0]) < 60 && y > crown.cy && y < F.base[1]);
     },
     destroy() {
+      destroyed = true;
       disposables.forEach(d => d.dispose && d.dispose());
       renderer.dispose();
       renderer.forceContextLoss();

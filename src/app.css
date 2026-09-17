@@ -47,6 +47,34 @@ button { font: inherit; }
 .install-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
 .install-btn svg { width: 20px; }
 
+/* the "how to install" card */
+.install-help { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px; }
+.install-backdrop { position: absolute; inset: 0; background: rgba(27, 31, 59, .5); animation: fade .25s ease-out; }
+.install-card {
+  position: relative; width: min(100%, 420px); max-height: calc(100dvh - 32px); overflow-y: auto;
+  padding: 24px 20px 22px; text-align: center; color: var(--ink); background: var(--cream);
+  border: 3px solid var(--ink); border-radius: 28px; box-shadow: 0 10px 0 var(--ink);
+  animation: pop .45s cubic-bezier(.3, 1.5, .5, 1);
+}
+.install-close { position: absolute; top: 12px; inset-inline-end: 12px; width: 40px; height: 40px; }
+.install-icon { width: 72px; height: 72px; border-radius: 18px; border: 2.5px solid var(--ink); }
+.install-card h2 { margin: 8px 0 2px; font: 400 clamp(1.6rem, 6vw, 2rem)/1.2 var(--display); color: var(--crimson); }
+.install-sub { margin: 0 auto 14px; max-width: 32ch; font: 500 1rem/1.5 var(--body); }
+.install-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; text-align: start; }
+.install-steps li {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  font: 700 1rem/1.35 var(--body); background: #fff; border: 2px solid var(--ink); border-radius: 16px;
+}
+.install-num {
+  flex: none; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%;
+  font: 700 .9rem/1 var(--body); color: var(--cream); background: var(--ink);
+}
+.install-step-icon { flex: none; width: 34px; height: 34px; display: grid; place-items: center; color: #1E78D4; }
+.install-step-icon svg { width: 28px; }
+.install-note { margin: 12px 0 0; font: 600 .9rem/1.4 var(--body); opacity: .75; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes pop { from { opacity: 0; transform: translateY(30px) scale(.92); } }
+
 /* ---------- orchard ---------- */
 .orchard {
   position: fixed; inset: 0; overflow-x: hidden; overflow-y: auto;

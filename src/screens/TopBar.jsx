@@ -1,15 +1,25 @@
+import { useCallback, useState } from 'react';
 import { useSettings } from '../settings/SettingsContext.jsx';
 import { sfx } from '../settings/sfx.js';
 import { useInstall } from '../settings/install.js';
+import InstallHelp from './InstallHelp.jsx';
 
-/* install (when the browser offers it) + sound + language, the same sticker buttons the game uses */
+/* install + sound + language, the same sticker buttons the game uses */
 export default function TopBar() {
   const { lang, setLang, sound, setSound, t } = useSettings();
-  const { canInstall, install } = useInstall();
+  const { mode, install } = useInstall();
+  const [help, setHelp] = useState(null);
+  const closeHelp = useCallback(() => setHelp(null), []);
+  const onInstall = async () => {
+    sfx.open(sound);
+    if (mode === 'prompt') await install();
+    else setHelp(mode);                    // iPhone / browsers without a prompt: show the steps
+  };
   return (
     <div className="topbar">
-      {canInstall && (
-        <button type="button" className="install-btn" onClick={() => { sfx.open(sound); install(); }}>
+      {help && <InstallHelp mode={help} onClose={closeHelp} />}
+      {mode && (
+        <button type="button" className="install-btn" onClick={onInstall}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>

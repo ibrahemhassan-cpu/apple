@@ -33,6 +33,16 @@ function skin(w, h, paint) {
 }
 /* draw at x and wrapped one width either side, so the seam round the back never shows */
 const around = (w, draw) => { draw(-w); draw(0); draw(w); };
+/* paint many soft marks on a layer of their own, then blur that layer once — blurring each mark on its own
+   is what made building the fruit slow on phones */
+function softLayer(g, w, h, blur, paint) {
+  const layer = document.createElement('canvas');
+  layer.width = w; layer.height = h;
+  paint(layer.getContext('2d'));
+  g.filter = `blur(${blur}px)`;
+  g.drawImage(layer, 0, 0);
+  g.filter = 'none';
+}
 
 /* ---------- apple: red flushed over yellow in fine streaks, pale freckles, green-gold round the stem ---------- */
 function appleSkin(r) {
@@ -46,15 +56,15 @@ function appleSkin(r) {
     shade.addColorStop(0, 'rgba(236,190,70,.32)'); shade.addColorStop(.3, 'rgba(236,190,70,0)');
     shade.addColorStop(.7, 'rgba(236,190,70,0)'); shade.addColorStop(1, 'rgba(236,190,70,.32)');
     g.fillStyle = shade; g.fillRect(0, 0, w, h);
-    g.lineCap = 'round';
-    g.filter = 'blur(2.5px)';                         // streaks melt into the flush rather than look painted on
-    for (let i = 0; i < 150; i++) {
-      const x = r() * w, y0 = 20 + r() * 120, len = 40 + r() * 100, lw = 2 + r() * 5;
-      g.strokeStyle = r() > .45 ? `rgba(110,8,26,${.12 + r() * .18})` : `rgba(250,160,80,${.06 + r() * .1})`;
-      g.lineWidth = lw;
-      around(w, dx => { g.beginPath(); g.moveTo(x + dx, y0); g.quadraticCurveTo(x + dx + (r() - .5) * 8, y0 + len / 2, x + dx + (r() - .5) * 6, y0 + len); g.stroke(); });
-    }
-    g.filter = 'none';
+    softLayer(g, w, h, 2.5, l => {                     // streaks melt into the flush rather than look painted on
+      l.lineCap = 'round';
+      for (let i = 0; i < 150; i++) {
+        const x = r() * w, y0 = 20 + r() * 120, len = 40 + r() * 100, lw = 2 + r() * 5;
+        l.strokeStyle = r() > .45 ? `rgba(110,8,26,${.12 + r() * .18})` : `rgba(250,160,80,${.06 + r() * .1})`;
+        l.lineWidth = lw;
+        around(w, dx => { l.beginPath(); l.moveTo(x + dx, y0); l.quadraticCurveTo(x + dx + (r() - .5) * 8, y0 + len / 2, x + dx + (r() - .5) * 6, y0 + len); l.stroke(); });
+      }
+    });
     for (let i = 0; i < 380; i++) {
       const x = r() * w, y = 8 + r() * (h - 16), s = .5 + r() * .9;
       g.fillStyle = `rgba(255,232,180,${.2 + r() * .3})`;
@@ -76,13 +86,13 @@ function mangoSkin(r) {
       b.addColorStop(0, 'rgba(208,48,40,.75)'); b.addColorStop(.6, 'rgba(214,70,44,.3)'); b.addColorStop(1, 'rgba(214,70,44,0)');
       g.fillStyle = b; g.fillRect(dx, 0, w, h);
     });
-    g.filter = 'blur(6px)';
-    for (let i = 0; i < 140; i++) {
-      const x = r() * w, y = r() * h, s = 6 + r() * 26;
-      g.fillStyle = r() > .5 ? `rgba(255,230,120,${.05 + r() * .08})` : `rgba(160,90,20,${.04 + r() * .06})`;
-      around(w, dx => { g.beginPath(); g.ellipse(x + dx, y, s, s * .7, r() * 3, 0, 6.29); g.fill(); });
-    }
-    g.filter = 'none';
+    softLayer(g, w, h, 6, l => {
+      for (let i = 0; i < 140; i++) {
+        const x = r() * w, y = r() * h, s = 6 + r() * 26;
+        l.fillStyle = r() > .5 ? `rgba(255,230,120,${.05 + r() * .08})` : `rgba(160,90,20,${.04 + r() * .06})`;
+        around(w, dx => { l.beginPath(); l.ellipse(x + dx, y, s, s * .7, r() * 3, 0, 6.29); l.fill(); });
+      }
+    });
     for (let i = 0; i < 600; i++) {
       const x = r() * w, y = r() * h, s = .4 + r() * .7;
       g.fillStyle = `rgba(255,245,190,${.25 + r() * .3})`;
@@ -95,19 +105,20 @@ function mangoSkin(r) {
 function potatoSkin(r) {
   return skin(512, 256, (g, w, h) => {
     g.fillStyle = '#C79A60'; g.fillRect(0, 0, w, h);
-    g.filter = 'blur(5px)';
-    for (let i = 0; i < 260; i++) {
-      const x = r() * w, y = r() * h, s = 5 + r() * 30;
-      g.fillStyle = r() > .5 ? `rgba(226,186,122,${.12 + r() * .2})` : `rgba(140,96,50,${.1 + r() * .18})`;
-      around(w, dx => { g.beginPath(); g.ellipse(x + dx, y, s, s * (.5 + r() * .5), r() * 3, 0, 6.29); g.fill(); });
-    }
-    g.filter = 'blur(1.5px)';
-    for (let i = 0; i < 60; i++) {                           // dried soil
-      const x = r() * w, y = r() * h, s = 3 + r() * 14;
-      g.fillStyle = `rgba(110,78,48,${.2 + r() * .25})`;
-      around(w, dx => { g.beginPath(); g.ellipse(x + dx, y, s, s * .6, r() * 3, 0, 6.29); g.fill(); });
-    }
-    g.filter = 'none';
+    softLayer(g, w, h, 5, l => {
+      for (let i = 0; i < 260; i++) {
+        const x = r() * w, y = r() * h, s = 5 + r() * 30;
+        l.fillStyle = r() > .5 ? `rgba(226,186,122,${.12 + r() * .2})` : `rgba(140,96,50,${.1 + r() * .18})`;
+        around(w, dx => { l.beginPath(); l.ellipse(x + dx, y, s, s * (.5 + r() * .5), r() * 3, 0, 6.29); l.fill(); });
+      }
+    });
+    softLayer(g, w, h, 1.5, l => {
+      for (let i = 0; i < 60; i++) {                         // dried soil
+        const x = r() * w, y = r() * h, s = 3 + r() * 14;
+        l.fillStyle = `rgba(110,78,48,${.2 + r() * .25})`;
+        around(w, dx => { l.beginPath(); l.ellipse(x + dx, y, s, s * .6, r() * 3, 0, 6.29); l.fill(); });
+      }
+    });
     for (let i = 0; i < 900; i++) {
       const x = r() * w, y = r() * h;
       g.fillStyle = r() > .5 ? 'rgba(92,60,30,.45)' : 'rgba(240,210,160,.35)';
@@ -132,7 +143,12 @@ function tilted(model, a) {
   return g;
 }
 
-function appleModel(r) {
+/* glossy skin: a real clear coat on computers, a plain shiny material on phones */
+const glossy = (rich, { map, roughness, clearcoat, clearcoatRoughness }) => rich
+  ? new MeshPhysicalMaterial({ map, roughness, clearcoat, clearcoatRoughness })
+  : new MeshStandardMaterial({ map, roughness: roughness * .8 });
+
+function appleModel(r, rich) {
   // the classic apple outline, from the calyx dimple at the bottom round to the stem cavity at the top
   const profile = [[0, -66], [10, -74], [26, -84], [46, -90], [66, -88], [86, -76], [101, -56], [111, -30], [114, -2],
     [112, 26], [105, 52], [92, 74], [74, 90], [54, 97], [36, 95], [20, 86], [8, 74], [0, 70]];
@@ -148,7 +164,7 @@ function appleModel(r) {
   }
   geo.translate(0, -8, 0);
   geo.computeVertexNormals();
-  const body = new Mesh(geo, new MeshPhysicalMaterial({ map: appleSkin(r), roughness: .38, clearcoat: .7, clearcoatRoughness: .28 }));
+  const body = new Mesh(geo, glossy(rich, { map: appleSkin(r), roughness: .38, clearcoat: .7, clearcoatRoughness: .28 }));
 
   const g = new Group();
   g.add(body);
@@ -166,7 +182,7 @@ function appleModel(r) {
   return tilted(g, .32);
 }
 
-function mangoModel(r) {
+function mangoModel(r, rich) {
   const geo = new SphereGeometry(1, 72, 48);
   geo.rotateY(-Math.PI / 2);
   const pos = geo.attributes.position;
@@ -182,7 +198,7 @@ function mangoModel(r) {
   }
   geo.computeVertexNormals();
   const g = new Group();
-  g.add(new Mesh(geo, new MeshPhysicalMaterial({ map: mangoSkin(r), roughness: .5, clearcoat: .35, clearcoatRoughness: .45 })));
+  g.add(new Mesh(geo, glossy(rich, { map: mangoSkin(r), roughness: .5, clearcoat: .35, clearcoatRoughness: .45 })));
   g.add(tube([[-13, 100, 0], [-9, 120, 0], [-3, 136, 0]], 5, new MeshStandardMaterial({ color: '#6B5A2C', roughness: .8 })));
   return tilted(g, .18);
 }
@@ -217,7 +233,8 @@ const MODELS = { apple: appleModel, mango: mangoModel, potato: potatoModel };
 /* =====================================================================
    renderer
    ===================================================================== */
-export function createFruits({ canvas, spec }) {
+export function createFruits({ canvas, spec, quality }) {
+  let Q = quality;
   if (!MODELS[spec.id]) return null;              // no model yet for this fruit: the engine keeps its drawing
   let renderer;
   try {
@@ -238,23 +255,29 @@ export function createFruits({ canvas, spec }) {
   camera.position.set(0, 0, 1500);
 
   const r = rng(13);
-  const model = MODELS[spec.id](r);
+  const model = MODELS[spec.id](r, Q.name === 'high');
 
-  /* one still picture of the fruit for the flyers and the basket, framed like the SVG box */
-  const sprite = (() => {
-    const shot = new Scene();
-    shot.add(hemi.clone(), sun.clone());
-    shot.add(model);
-    const cam = new OrthographicCamera(-120, 120, 140, -120, 1, 3000);
-    cam.position.set(0, 0, 1500);
+  /* one still picture of the fruit for the flyers and the basket, framed like the SVG box.
+     Until it's ready (a moment after the game opens) the drawing is used. */
+  const api = { sprite: '' };
+  let destroyed = false;
+  const shot = new Scene();
+  shot.add(hemi.clone(), sun.clone(), model);
+  const cam = new OrthographicCamera(-120, 120, 140, -120, 1, 3000);
+  cam.position.set(0, 0, 1500);
+  // the shaders compile in the background first, so taking the picture doesn't freeze the page. The fruit
+  // are still hidden (unripe, scale 0) this early, so borrowing their canvas for one frame shows nothing
+  renderer.compileAsync(shot, cam).then(() => {
+    if (destroyed) return;
     renderer.setPixelRatio(1);
     renderer.setSize(480, 520, false);
-    cam.updateProjectionMatrix();
     renderer.render(shot, cam);
     const url = canvas.toDataURL('image/png');
-    shot.remove(model);
-    return url;
-  })();
+    api.sprite = url;
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, Q.fruitDpr));
+    renderer.setSize(size.w, size.h, true);
+    lastKey = '';
+  }).catch(() => {});
 
   /* each fruit: centre → its own spin and pop → sway from the stem → the model */
   const Z = 600;                                    // in front of everything; the camera is orthographic
@@ -270,16 +293,29 @@ export function createFruits({ canvas, spec }) {
   });
 
   const view = { L: 0, R: 800, T: 0, B: 1800, tx: 0, ty: 0 };
+  const size = { w: 300, h: 150 };
+  let lastKey = '', lastDraw = -1, drawn = false;
 
-  return {
-    sprite,
+  return Object.assign(api, {
     sync(v) { Object.assign(view, v); },
     resize(w, h) {
-      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+      Object.assign(size, { w, h });
+      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, Q.fruitDpr));
       renderer.setSize(w, h, true);
+      lastKey = '';
+    },
+    setQuality(q) {
+      Q = q;
+      this.resize(size.w, size.h);
     },
     /* states: [{ x, y, size, scale, rot, sway, alpha }] in world units / degrees */
-    render(states) {
+    render(states, time) {
+      // redraw when a fruit or the camera really moved; the gentle sway alone only at Q.calmFps
+      let key = `${view.L},${view.T},${view.R},${view.B}`;
+      for (const s of states) key += `|${s.x},${s.y},${s.size},${s.scale.toFixed(3)},${s.rot.toFixed(1)},${s.alpha.toFixed(2)}`;
+      if (key === lastKey && time - lastDraw < 1 / Q.calmFps - .004) return;
+      lastKey = key;
+      lastDraw = time;
       canvas.style.transform = `translate3d(${view.tx}px,${view.ty}px,0)`;
       camera.left = view.L; camera.right = view.R; camera.top = -view.T; camera.bottom = -view.B;
       camera.updateProjectionMatrix();
@@ -302,10 +338,11 @@ export function createFruits({ canvas, spec }) {
           });
         }
       });
-      if (any || this.drawn) renderer.render(scene, camera);
-      this.drawn = any;
+      if (any || drawn) renderer.render(scene, camera);
+      drawn = any;
     },
     destroy() {
+      destroyed = true;
       scene.traverse(o => {
         if (o.geometry) o.geometry.dispose();
         if (o.material) { o.material.map?.dispose(); o.material.dispose(); }
@@ -313,5 +350,5 @@ export function createFruits({ canvas, spec }) {
       renderer.dispose();
       renderer.forceContextLoss();
     },
-  };
+  });
 }

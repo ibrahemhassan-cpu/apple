@@ -1,11 +1,10 @@
-/* tiny synthesised taps for the shell (the games bring their own sound) */
-let ctx = null;
+/* tiny synthesised taps for the shell (the games bring their own sound, on the same shared context) */
+import { audioContext } from './audio.js';
 
 function tone(freq, dur, { type = 'triangle', vol = .1, to = null, delay = 0 } = {}) {
-  const AC = window.AudioContext || window.webkitAudioContext;
-  if (!AC) return;
-  if (!ctx) ctx = new AC();
-  if (ctx.state === 'suspended') ctx.resume();
+  const ctx = audioContext();
+  if (!ctx) return;
+  if (ctx.state !== 'running') ctx.resume().catch(() => {});
   const t = ctx.currentTime + delay, o = ctx.createOscillator(), g = ctx.createGain();
   o.type = type;
   o.frequency.setValueAtTime(freq, t);

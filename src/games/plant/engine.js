@@ -9,6 +9,8 @@ import { SplitText } from 'gsap/SplitText';
 import { translate, formatNumber } from '../../i18n/strings.js';
 import { createFlora } from './flora3d.js';
 import { createFruits } from './fruit3d.js';
+import { audioContext } from '../../settings/audio.js';
+import { pickQuality, lowerQuality } from './quality.js';
 
 gsap.registerPlugin(MotionPathPlugin, DrawSVGPlugin, Draggable, SplitText);
 
@@ -39,6 +41,7 @@ export function createPlantGame(opts) {
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const wait = s => new Promise(r => gsap.delayedCall(s, r));
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let quality = pickQuality();
 
   let lang = opts.lang === 'en' ? 'en' : 'ar';
   /* play level: 'easy' plants itself, 'mid' adds digging + watering, 'high' adds the sun too */
@@ -224,7 +227,27 @@ export function createPlantGame(opts) {
         sway: isGround || reduceMotion ? 0 : -5 * Math.cos(Math.PI * (time + n.phase) / 3.2),
         alpha: n.el.style.visibility === 'hidden' ? 0 : +gsap.getProperty(n.el, 'opacity') * n.dim,
       };
-    }));
+    }), time);
+  }
+
+  /* frame watch: if the phone can't keep up once the plant is on screen, step the 3D quality down */
+  const frames = { from: -1, count: 0, slow: 0 };
+  function watchFrames(time) {
+    if (quality.forced || !flora.shown || document.hidden) { frames.from = -1; return; }
+    if (frames.from < 0 || performance.now() / 1000 - flora.shown < 3) { frames.from = time; frames.count = 0; return; }   // let growth settle first
+    frames.count++;
+    if (time - frames.from < 2) return;
+    const fps = frames.count / (time - frames.from);
+    frames.from = time; frames.count = 0;
+    frames.slow = fps < 45 ? frames.slow + 1 : 0;
+    if (frames.slow < 2) return;
+    frames.slow = 0;
+    const next = lowerQuality(quality);
+    if (!next) return;
+    quality = next;
+    flora.setQuality(quality);
+    fruit3d?.setQuality(quality);
+    sizeCanvas(bg); sizeCanvas(fx);
   }
 
   /* ---------- butterflies (world units) ---------- */
@@ -293,7 +316,7 @@ export function createPlantGame(opts) {
   /* ---------- particles ---------- */
   function makeCanvas(el) { return { el, ctx: el.getContext('2d'), w: 0, h: 0 }; }
   function sizeCanvas(c) {
-    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const dpr = Math.min(devicePixelRatio || 1, quality.fxDpr);
     c.w = innerWidth; c.h = innerHeight;
     c.el.width = Math.round(c.w * dpr); c.el.height = Math.round(c.h * dpr);
     c.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -431,13 +454,12 @@ export function createPlantGame(opts) {
     ctx: null, out: null, on: opts.sound !== false,
     init() {
       if (!this.ctx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return;
-        this.ctx = new AC();
+        this.ctx = audioContext();          // shared with the whole app — iPhone only wakes one up per tap
+        if (!this.ctx) return;
         this.out = this.ctx.createGain(); this.out.gain.value = .55;
         this.out.connect(this.ctx.destination);
       }
-      if (this.ctx.state === 'suspended') this.ctx.resume();
+      if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});   // 'suspended', or 'interrupted' on iPhone
     },
     tone(f, dur, { type = 'sine', vol = .2, to = null, delay = 0 } = {}) {
       if (!this.on || !this.ctx) return;
@@ -1806,15 +1828,16 @@ export function createPlantGame(opts) {
   function boot() {
     stage.classList.toggle('kind-ground', isGround);
     buildGround();
-    flora = createFlora({ canvas: $('#flora'), spec, reduceMotion });
+    flora = createFlora({ canvas: $('#flora'), spec, reduceMotion, quality });
     ticker.add(time => flora.render(time));
-    fruit3d = createFruits({ canvas: $('#fruit3d'), spec });
+    ticker.add(watchFrames);
+    fruit3d = createFruits({ canvas: $('#fruit3d'), spec, quality });
     if (fruit3d) {
       stage.classList.add('fruits-3d');
-      fruitPicture = () => `<img src="${fruit3d.sprite}" alt="" draggable="false">`;
+      fruitPicture = () => (fruit3d.sprite ? `<img src="${fruit3d.sprite}" alt="" draggable="false">` : FRUIT_SVG);
       ticker.add(drawFruit3d);
     }
-    if (import.meta.env.DEV) window.__orchard = { flora, fruit3d };   // poke at it from the console
+    if (import.meta.env.DEV) window.__orchard = { flora, fruit3d, quality: () => quality };   // poke at it from the console
     if (isGround) buildUnderground(); else buildLadder();
     buildFruits();
     applyLang();
@@ -1838,7 +1861,8 @@ export function createPlantGame(opts) {
       ticker.live.clear();
       gsap.globalTimeline.getChildren(true, true, true).forEach(child => child.kill());
       gsap.globalTimeline.timeScale(1);
-      if (Sound.ctx) Sound.ctx.close().catch(() => {});
+      Sound.on = false;
+      Sound.out?.disconnect();              // the context itself stays open for the next game
       flora?.destroy();
       fruit3d?.destroy();
     },
