@@ -7,6 +7,8 @@ import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
 import { Draggable } from 'gsap/Draggable';
 import { SplitText } from 'gsap/SplitText';
 import { translate, formatNumber } from '../../i18n/strings.js';
+import { createFlora } from './flora3d.js';
+import { createFruits } from './fruit3d.js';
 
 gsap.registerPlugin(MotionPathPlugin, DrawSVGPlugin, Draggable, SplitText);
 
@@ -69,9 +71,13 @@ export function createPlantGame(opts) {
   // basket slots in basket units (260 × 230)
   const SLOTS = [[72, 118], [110, 120], [150, 120], [188, 118], [92, 96], [130, 98], [170, 96], [112, 74], [150, 74], [131, 54]];
   const FRUIT_SVG = '<svg viewBox="-120 -140 240 260" aria-hidden="true"><use href="#fruit" x="-120" y="-140" width="240" height="260"/></svg>';
+  // the picture of a fruit off the plant: the 3D fruit's own portrait once it exists, the drawing otherwise
+  let fruitPicture = () => FRUIT_SVG;
 
   const stage = $('#stage'), world = $('#world'), scene = $('#scene'), far = $('#far');
   const overlay = $('#overlay');
+  let flora = null;                                   // the 3D tree or plant, made at boot
+  let fruit3d = null;                                 // the 3D fruit drawn inside the nodes (null without WebGL)
 
   /* ---------- layout + camera ---------- */
   const view = { vw: 0, vh: 0, s: 1, vbX: 0 };
@@ -89,6 +95,13 @@ export function createPlantGame(opts) {
     worldY = look + cam.lift * view.vh * 0.5;
     world.style.transform = `translate3d(${par.x * 0.35}px,${worldY}px,0)`;
     far.style.transform = `translate3d(${par.x}px,${look * 0.2 + cam.lift * view.vh * 0.22}px,0)`;
+    if (flora) {
+      // the 3D canvas stays pinned to the screen and looks at exactly the part of the world that is showing
+      const a = toWorld(0, 0), b = toWorld(view.vw, view.vh);
+      const v = { L: a.x, R: b.x, T: a.y, B: b.y, tx: -par.x * 0.35, ty: -(view.vh - H * view.s + worldY) };
+      flora.sync(v);
+      fruit3d?.sync(v);
+    }
   }
   function toScreen(x, y) {
     return { x: (x - view.vbX) * view.s + par.x * 0.35, y: (view.vh - H * view.s) + y * view.s + worldY };
@@ -108,6 +121,9 @@ export function createPlantGame(opts) {
     const vbW = view.vw / view.s;
     view.vbX = -(vbW - W) / 2;
     scene.setAttribute('viewBox', `${view.vbX} 0 ${vbW} ${H + BELOW}`);
+    $('#scene-back').setAttribute('viewBox', `${view.vbX} 0 ${vbW} ${H + BELOW}`);
+    flora?.resize(view.vw, view.vh);
+    fruit3d?.resize(view.vw, view.vh);
     world.style.width = view.vw + 'px';
     world.style.height = (H + BELOW) * view.s + 'px';
     world.style.top = (view.vh - H * view.s) + 'px';
@@ -144,43 +160,10 @@ export function createPlantGame(opts) {
     }
   }
 
-  const canopy = [];   // {el, cx, cy}
-  const speckles = [];
-  function buildCanopy() {
-    const r = rng(11), T = spec.tree, C = T.canopy;
-    // the tree's own shape: trunk outline + branch strokes come from the fruit's spec
-    $('#trunk').setAttribute('d', T.trunk);
-    const bg = $('#branches');
-    T.branches.forEach(([d, w]) => svgEl('path', { d, 'stroke-width': w }, bg));
-
-    const back = $('#canopy-back'), front = $('#canopy-front');
-    C.layers.forEach(L => {
-      for (let i = 0; i < L.n; i++) {
-        const a = r() * Math.PI * 2;
-        const d = L.back ? .45 + .55 * Math.sqrt(r()) : Math.sqrt(r());
-        const cx = C.cx + L.dx + Math.cos(a) * C.rx * L.k * d;
-        const cy = C.cy + L.dy + Math.sin(a) * C.ry * L.k * d;
-        const el = svgEl('circle', { cx: cx.toFixed(1), cy: cy.toFixed(1), r: (L.r0 + r() * (L.r1 - L.r0)).toFixed(1), fill: L.fill }, L.back ? back : front);
-        canopy.push({ el, cx, cy });
-      }
-    });
-    const sg = $('#speckles'), LV = T.leaves, w = LV.w, h = LV.h;
-    for (let i = 0; i < LV.n; i++) {
-      const a = r() * Math.PI * 2, d = Math.sqrt(r());
-      const cx = LV.cx + Math.cos(a) * LV.rx * d, cy = LV.cy + Math.sin(a) * LV.ry * d;
-      const el = svgEl('path', {
-        d: `M${cx},${cy - h} C${cx + w},${cy - h * .36} ${cx + w * .7},${cy + h * .72} ${cx},${cy + h} C${cx - w * .7},${cy + h * .72} ${cx - w},${cy - h * .36} ${cx},${cy - h}Z`,
-        fill: r() > .4 ? LV.colors[0] : LV.colors[1], opacity: .8,
-        transform: `rotate(${(r() * 360) | 0} ${cx} ${cy})`
-      }, sg);
-      speckles.push(el);
-    }
-    const [gx, gy] = T.growFrom;
-    canopy.sort((a, b) => Math.hypot(a.cx - gx, a.cy - gy) - Math.hypot(b.cx - gx, b.cy - gy));
-    gsap.set(canopy.map(c => c.el), { scale: 0, transformOrigin: '50% 50%' });
-    gsap.set(speckles, { scale: 0, transformOrigin: '50% 50%' });
-    gsap.set('#branches path', { drawSVG: '0%' });
-    gsap.set('#trunk', { scaleY: 0, scaleX: .3, svgOrigin: '400 1768' });
+  /* a random point inside the crown, for falling leaves */
+  function inCrown() {
+    const C = spec.flora.crown, a = rand(0, 6.28), d = Math.sqrt(Math.random());
+    return { x: C.cx + Math.cos(a) * C.rx * d, y: C.cy + Math.sin(a) * C.ry * d };
   }
 
   const rungs = [], rungHits = [];
@@ -210,9 +193,10 @@ export function createPlantGame(opts) {
       el.setAttribute('aria-label', `${t('fruitAria')} ${num(i + 1)}`);
       el.tabIndex = -1;
       el.innerHTML = `<div class="fruit-inner"><span class="ring" style="animation-delay:${(i * .37) % 1.9}s"></span>${FRUIT_SVG}</div>`;
-      el.querySelector('svg').style.animationDelay = `${-rand(0, 3.2)}s`;
+      const phase = rand(0, 3.2);
+      el.querySelector('svg').style.animationDelay = `${-phase}s`;
       layer.append(el);
-      const n = { el, inner: el.firstElementChild, x, y, i, picked: false };
+      const n = { el, inner: el.firstElementChild, x, y, i, picked: false, phase, dim: .58 };
       gsap.set(n.inner, { scale: 0 });
       nodes.push(n);
     });
@@ -226,6 +210,22 @@ export function createPlantGame(opts) {
     });
   }
   function placeFruits() { nodes.forEach(placeNode); }
+
+  /* each 3D fruit copies its node: where it is, its pop and spin, the gentle sway, and the fade when out of reach */
+  function drawFruit3d(time, deltaMs) {
+    const k = Math.min(1, deltaMs / 1000 * 6);
+    const size = Math.max(spec.fruitSize * view.s, 48) / view.s;
+    fruit3d.render(nodes.map(n => {
+      n.dim += ((n.el.classList.contains('reachable') ? 1 : .58) - n.dim) * k;
+      return {
+        x: n.x, y: n.y, size,
+        scale: +gsap.getProperty(n.inner, 'scale'),
+        rot: +gsap.getProperty(n.inner, 'rotation'),
+        sway: isGround || reduceMotion ? 0 : -5 * Math.cos(Math.PI * (time + n.phase) / 3.2),
+        alpha: n.el.style.visibility === 'hidden' ? 0 : +gsap.getProperty(n.el, 'opacity') * n.dim,
+      };
+    }));
+  }
 
   /* ---------- butterflies (world units) ---------- */
   const flutters = [];
@@ -262,7 +262,10 @@ export function createPlantGame(opts) {
     A:     { hLx: -40, hLy: -210, hRx: 40, hRy: -184, kLx: -18, kLy: -42, fLx: -16, fLy: -6, kRx: 30, kRy: -60, fRx: 18, fRy: -32 },
     B:     { hLx: -40, hLy: -184, hRx: 40, hRy: -210, kLx: -30, kLy: -60, fLx: -18, fLy: -32, kRx: 18, kRy: -42, fRx: 16, fRy: -6 },
     CHEER: { hLx: -54, hLy: -238, hRx: 54, hRy: -238 },
+    // squatting down in the dirt, knees out, hands low
+    CROUCH: { hLx: -30, hLy: -72, hRx: 30, hRy: -68, kLx: -40, kLy: -58, fLx: -28, fLy: -44, kRx: 40, kRy: -58, fRx: 28, fRy: -44 },
   };
+  const CROUCH_DROP = 42;   // how far the body sinks when squatting
   const pose = { x: -600, y: GROUND, lean: 0, sx: 1, sy: 1, head: 0, shadow: .28, ...POSE.STAND };
   const K = {};
   ['kid', 'armL', 'armR', 'handL', 'handR', 'thighL', 'thighR', 'shinL', 'shinR', 'shoeL', 'shoeR', 'kidHead', 'kidShadow']
@@ -456,6 +459,14 @@ export function createPlantGame(opts) {
       bp.frequency.setValueAtTime(from, t); bp.frequency.exponentialRampToValueAtTime(to, t + dur);
       g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * .4); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
       src.connect(bp).connect(g).connect(this.out); src.start(t);
+    },
+    /* leaves rustling: a scatter of tiny high hisses that swells and fades */
+    rustle(dur = .6, vol = .06) {
+      if (!this.on || !this.ctx) return;
+      for (let t = 0; t < dur; t += .012 + Math.random() * .04) {
+        const k = Math.sin(Math.PI * t / dur);
+        this.noise(.03 + Math.random() * .07, { vol: .0005 + vol * k * (.35 + Math.random() * .65), from: 2600 + Math.random() * 3400, to: 1600 + Math.random() * 2600, delay: t });
+      }
     },
     blip() { this.tone(620 + Math.random() * 500, .14, { type: 'triangle', vol: .1, to: 1500 }); },
     pluck() { this.tone(300, .2, { type: 'triangle', vol: .22, to: 680 }); this.noise(.1, { vol: .07, from: 2400, to: 700 }); },
@@ -872,26 +883,27 @@ export function createPlantGame(opts) {
   }
 
   function growTree() {
-    const circles = canopy.map(c => c.el);
+    const C = spec.flora.crown;
     const tl = gsap.timeline();
-    tl.set(['#tree', '#sprout'], { visibility: 'visible' }, 0)
+    tl.set('#sprout', { visibility: 'visible' }, 0)
+      .call(() => flora.show(), null, 0)
       .fromTo('#ripple', { opacity: 1, scale: .2, svgOrigin: '400 1752' }, { opacity: 0, scale: 4, duration: 1.3, ease: 'expo.out' }, 0)
       .fromTo('#sprout', { scale: 0, svgOrigin: '400 1754' }, { scale: 1.4, duration: .8, ease: 'elastic.out(1,.4)' }, .05)
       .add('grow', .75)
-      .to('#trunk', { scaleY: 1, scaleX: 1, duration: 2.1, ease: 'power3.inOut' }, 'grow')
+      // the wood grows from the root out to the twigs, thickening as it goes; then the leaves open
+      .to(flora.growth, { wood: 1, duration: 3, ease: 'power1.inOut' }, 'grow')
+      .to('#plant-shade', { attr: { rx: C.rx * .75, ry: 16 }, duration: 3.2, ease: 'power1.inOut' }, 'grow')
       .to('#sprout', { scale: 0, duration: .4, ease: 'back.in(2)' }, 'grow+=.25')
       .to(cam, { t: 1, duration: 2.5, ease: 'power2.inOut', onUpdate: renderCam }, 'grow+=.15')
       .call(() => Sound.tone(110, 2, { type: 'sine', vol: .12, to: 330 }), null, 'grow')
-      .to('#branches path', { drawSVG: '100%', duration: 1, ease: 'power2.out', stagger: .07 }, 'grow+=1.4')
-      .to(circles, { scale: 1, duration: .75, ease: 'back.out(2.2)', stagger: .008 }, 'grow+=1.9')
+      .to(flora.growth, { leaves: 1, duration: 1.7, ease: 'power1.out' }, 'grow+=1.5')
       .call(() => {
-        Sound.whoosh();
+        Sound.whoosh(); Sound.rustle(1.4, .05);
         for (let i = 0; i < 22; i++) {
-          const c = pick(canopy), p = toScreen(c.cx, c.cy);
+          const c = inCrown(), p = toScreen(c.x, c.y);
           burst(p.x, p.y, { n: 2, type: 'leaf', colors: LEAVES, angle: -Math.PI / 2, spread: 3, speed: [60, 260], life: [1.6, 2.8], gravity: 120, size: [5, 9], drag: .95 });
         }
       }, null, 'grow+=2.2')
-      .to(speckles, { scale: 1, duration: .5, ease: 'back.out(3)', stagger: { each: .012, from: 'random' } }, 'grow+=2.7')
       .to(nodes.map(n => n.inner), { scale: 1, rotation: 0, duration: 1.1, ease: 'elastic.out(1,.45)', stagger: { each: .1, from: 'random' } }, 'grow+=3.1');
     nodes.forEach((n, i) => {
       gsap.set(n.inner, { rotation: -40 });
@@ -1104,12 +1116,8 @@ export function createPlantGame(opts) {
   }
 
   function shakeNear(x, y) {
-    for (const c of canopy) {
-      const dist = Math.hypot(c.cx - x, c.cy - y);
-      if (dist > 190) continue;
-      const k = 1 - dist / 190;
-      gsap.fromTo(c.el, { x: 0, y: 0 }, { x: rand(-9, 9) * k, y: rand(-6, 6) * k, duration: .07, repeat: 5, yoyo: true, ease: 'sine.inOut', overwrite: 'auto', onComplete: () => gsap.set(c.el, { x: 0, y: 0 }) });
-    }
+    if (!isGround) { Sound.init(); Sound.rustle(.4, .045); }
+    flora.shake(x, y, 1, 190);
     for (const n of nodes) {
       if (n.picked || Math.hypot(n.x - x, n.y - y) > 230) continue;
       gsap.fromTo(n.inner, { rotation: 0 }, { keyframes: { rotation: [0, -12, 9, -5, 0] }, duration: .7, ease: 'none' });
@@ -1151,6 +1159,7 @@ export function createPlantGame(opts) {
     if (state !== 'play' || n.picked) return null;
     if (!n.reach) { n.poleReach ? poleCatch(n) : tooHigh(n); return null; }
     n.picked = true; touched = true;
+    if (isGround) scoopFor(n);
     gsap.killTweensOf('#hand'); gsap.set('#hand', { autoAlpha: 0 });
     n.el.classList.remove('ripe'); n.el.tabIndex = -1;
     Sound.init(); Sound.pluck();
@@ -1163,9 +1172,10 @@ export function createPlantGame(opts) {
     shakeNear(n.x, n.y);
     if (isGround) burst(r.left + r.width / 2, r.top + r.height * .5, { n: 16, type: 'dust', colors: SOIL_DUST, angle: -Math.PI / 2, spread: 2.4, speed: [60, 240], life: [.5, .9], gravity: 420, size: [3, 7] });
     else burst(r.left + r.width / 2, r.top + r.height * .3, { n: 4, type: 'leaf', colors: LEAVES, angle: -Math.PI / 2, spread: 2.4, speed: [40, 160], life: [1.8, 2.8], gravity: 110, size: [5, 8], drag: .95 });
+    flora.detach(n.i);                    // its stalk stays on the tree no longer
     const f = document.createElement('div');
     f.className = 'flyer';
-    f.innerHTML = FRUIT_SVG;
+    f.innerHTML = fruitPicture();
     Object.assign(f.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
     overlay.append(f);
     gsap.set(n.el, { autoAlpha: 0 });
@@ -1218,7 +1228,7 @@ export function createPlantGame(opts) {
     const slotScreen = { x: br.left + slot[0] * k, y: br.top + slot[1] * k };
     const el = document.createElement('div');
     el.className = 'b-fruit';
-    el.innerHTML = FRUIT_SVG;
+    el.innerHTML = fruitPicture();
     el.style.left = ((slot[0] - 34) / 260 * 100) + '%';
     el.style.top = ((slot[1] - 36.8) / 230 * 100) + '%';
     layer.append(el);
@@ -1264,10 +1274,7 @@ export function createPlantGame(opts) {
       .to(basketBody, { y: 0, duration: .8, ease: 'bounce.out' });
     gsap.to('.b-fruit', { y: -18, duration: .25, yoyo: true, repeat: 1, ease: 'power2.out', stagger: .04 });
 
-    canopy.forEach(c => {
-      if (Math.random() > .5) return;
-      gsap.to(c.el, { y: rand(-8, -3), duration: rand(.2, .35), yoyo: true, repeat: 3, ease: 'sine.inOut', delay: rand(0, .4) });
-    });
+    if (!isGround) { flora.shake(spec.flora.crown.cx, spec.flora.crown.cy, 1.3, 900); Sound.rustle(1.1, .07); }   // the whole tree cheers
 
   }
 
@@ -1318,6 +1325,12 @@ export function createPlantGame(opts) {
         .to(cam, { t: 0, duration: 1.5, ease: 'power2.inOut', onUpdate: renderCam }, 0)
         .to(slide, { y: GROUND, duration: 1.3, ease: 'power2.in', onUpdate: () => { pose.y = slide.y; pose.x = ladderX(slide.y); R(); } }, .1)
         .to(pose, { ...POSE.AIR, duration: .4, onUpdate: R }, .1);
+    }
+
+    // off the ladder, or up out of the crouch
+    if (isGround) {
+      scoop?.kill();
+      await gsap.to(pose, { ...POSE.STAND, y: GROUND, lean: 0, duration: .45, ease: 'back.out(2)', onUpdate: R });
     }
 
     // land, turn around to face us
@@ -1372,11 +1385,11 @@ export function createPlantGame(opts) {
      ===================================================================== */
   const SOIL_TOP = 1790;
   const MOTHER = [400, 1814];
-  const roots = [], plantLeaves = [], plantFlowers = [];
+  const roots = [];
   const SOIL_DUST = ['#8A6A4F', '#6F5440', '#E8D6A8'];
 
   function buildUnderground() {
-    const U = spec.underground, P = spec.plant, r = rng(5);
+    const U = spec.underground, r = rng(5);
     const ug = $('#underground');
     // plain earth under the lawn, so panning down never shows sky
     svgEl('rect', { x: -2000, y: SOIL_TOP - 4, width: 4800, height: 900, fill: '#5A3A22' }, ug);
@@ -1422,41 +1435,9 @@ export function createPlantGame(opts) {
     mother.innerHTML = U.mother;
     gsap.set(roots, { drawSVG: '0%' });
 
-    // above the soil: stems, pairs of leaflets along them, a few flowers
+    // above the soil the plant itself is 3D (flora3d.js); here is just the area you grab it by
     const plant = $('#plant');
-    const body = svgEl('g', { id: 'plant-body' }, plant);
-    const sg = svgEl('g', { fill: 'none', stroke: P.stem, 'stroke-linecap': 'round' }, body);
-    const lg = svgEl('g', {}, body), fg = svgEl('g', {}, body);
-    P.stems.forEach(([d, w]) => {
-      const path = svgEl('path', { d, 'stroke-width': w, class: 'stem' }, sg);
-      const len = path.getTotalLength();
-      [.4, .62, .82].forEach((f, k) => {
-        const a = path.getPointAtLength(len * f), b = path.getPointAtLength(Math.min(len, len * f + 2));
-        const ang = Math.atan2(b.y - a.y, b.x - a.x);
-        [-1, 1].forEach(side => {
-          const sz = 16 + k * 3, perp = ang + side * Math.PI / 2;
-          const cx = a.x + Math.cos(perp) * sz * .9, cy = a.y + Math.sin(perp) * sz * .9;
-          plantLeaves.push(svgEl('ellipse', {
-            cx: cx.toFixed(1), cy: cy.toFixed(1), rx: sz, ry: (sz * .56).toFixed(1),
-            fill: r() > .5 ? P.leaf[0] : P.leaf[1], transform: `rotate(${(perp * 180 / Math.PI - side * 20).toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})`
-          }, lg));
-        });
-      });
-      const tip = path.getPointAtLength(len);
-      plantLeaves.push(svgEl('ellipse', { cx: tip.x.toFixed(1), cy: (tip.y - 12).toFixed(1), rx: 13, ry: 21, fill: P.leaf[0] }, lg));
-    });
-    P.flowers.forEach(([x, y]) => {
-      const f = svgEl('g', {}, fg);
-      for (let k = 0; k < 5; k++) {
-        const a = k / 5 * Math.PI * 2;
-        svgEl('circle', { cx: (x + Math.cos(a) * 8).toFixed(1), cy: (y + Math.sin(a) * 8).toFixed(1), r: 7, fill: P.petal }, f);
-      }
-      svgEl('circle', { cx: x, cy: y, r: 5, fill: '#FFC94A' }, f);
-      plantFlowers.push(f);
-    });
-    svgEl('rect', { id: 'plant-hit', x: 280, y: 1500, width: 240, height: 270, fill: 'transparent' }, plant);
-    gsap.set('#plant .stem', { drawSVG: '0%' });
-    gsap.set([...plantLeaves, ...plantFlowers], { scale: 0, transformOrigin: '50% 50%' });
+    svgEl('rect', { id: 'plant-hit', x: 270, y: 1470, width: 260, height: 300, fill: 'transparent' }, plant);
   }
 
   /* the growth, seen through the soil: the camera goes down, the ground opens like a lens */
@@ -1464,6 +1445,7 @@ export function createPlantGame(opts) {
     const shrink = { s: .62 };
     const tl = gsap.timeline();
     tl.set(['#plant', '#underground', '#sprout'], { visibility: 'visible' }, 0)
+      .call(() => flora.show(), null, 0)
       .fromTo('#ripple', { opacity: 1, scale: .2, svgOrigin: '400 1752' }, { opacity: 0, scale: 4, duration: 1.3, ease: 'expo.out' }, 0)
       .fromTo('#sprout', { scale: 0, svgOrigin: '400 1754' }, { scale: 1.4, duration: .8, ease: 'elastic.out(1,.4)' }, .05)
       .add('look', .8)
@@ -1471,13 +1453,14 @@ export function createPlantGame(opts) {
       .to('#soil-lens', { attr: { r: 1500 }, duration: 2.6, ease: 'power2.inOut' }, 'look+=.5')
       .call(() => { Sound.whoosh(); Sound.tone(220, 1.6, { vol: .08, to: 440 }); }, null, 'look+=.5')
       .to('#sprout', { scale: 0, duration: .4, ease: 'back.in(2)' }, 'look+=1.2')
-      .to('#plant .stem', { drawSVG: '100%', duration: 1.4, ease: 'power2.out', stagger: .12 }, 'look+=1.2')
-      .to(plantLeaves, { scale: 1, duration: .5, ease: 'back.out(2.5)', stagger: .02 }, 'look+=1.7')
+      .to(flora.growth, { wood: 1, duration: 1.8, ease: 'power2.out' }, 'look+=1.2')
+      .to('#plant-shade', { attr: { rx: 120, ry: 10 }, duration: 1.8, ease: 'power2.out' }, 'look+=1.2')
+      .to(flora.growth, { leaves: 1, duration: 1.6, ease: 'power1.out' }, 'look+=1.5')
       .to(roots, { drawSVG: '100%', duration: 1.6, ease: 'power2.out', stagger: .06 }, 'look+=2.1')
       // the planted piece feeds the plant, so it shrinks and shrivels
       .to(shrink, { s: .36, duration: 3.2, ease: 'sine.inOut', onUpdate: () => $('#mother').setAttribute('transform', `scale(${shrink.s.toFixed(3)})`) }, 'look+=2.1')
       .to('#mother', { opacity: .7, duration: 3.2 }, 'look+=2.1')
-      .to(plantFlowers, { scale: 1, duration: .6, ease: 'back.out(3)', stagger: .15 }, 'look+=3')
+      .to(flora.growth, { flowers: 1, duration: .8, ease: 'back.out(2.5)' }, 'look+=3')
       .to(nodes.map(n => n.inner), { scale: 1, duration: 1, ease: 'elastic.out(1,.5)', stagger: .22 }, 'look+=3.2');
     nodes.forEach((n, i) => tl.call(() => {
       Sound.blip();
@@ -1500,7 +1483,8 @@ export function createPlantGame(opts) {
     return new Promise(resolve => {
       const setProgress = p => {
         progress = clamp(p, 0, 1);
-        gsap.set('#plant-body', { scaleY: 1 + progress * .18, scaleX: 1 - progress * .05, svgOrigin: '400 1764' });
+        flora.pose.sy = 1 + progress * .18;           // the plant stretches as you pull
+        flora.pose.sx = 1 - progress * .05;
         pose.lean = 4 + progress * 14; R();
         if (Math.random() < .35) {
           const b = toScreen(400 + rand(-40, 40), 1770);
@@ -1541,16 +1525,17 @@ export function createPlantGame(opts) {
         hit.removeEventListener('pointerup', up);
         hit.style.pointerEvents = 'none';
         gsap.killTweensOf('#hand'); gsap.set('#hand', { autoAlpha: 0 });
-        Sound.thud(); Sound.pluck(); Sound.whoosh();
+        Sound.thud(); Sound.pluck(); Sound.whoosh(); Sound.rustle(.7, .07);
         const base = toScreen(400, 1764);
         burst(base.x, base.y, { n: 44, type: 'dust', colors: SOIL_DUST, angle: -Math.PI / 2, spread: 2.4, speed: [120, 440], life: [.6, 1.1], gravity: 700, size: [4, 9] });
         gsap.to(roots.slice(0, U.shallow), { opacity: 0, duration: .3 });
 
         const tl = gsap.timeline({ onComplete: resolve });
-        tl.to('#plant-body', { scaleY: 1, scaleX: 1, duration: .2, svgOrigin: '400 1764' }, 0)
-          .to('#plant', { y: -150, duration: .45, ease: 'power2.out' }, 0)
-          .to('#plant', { y: 20, x: 250, rotation: 82, svgOrigin: '400 1764', duration: .7, ease: 'power2.in' }, .45)
-          .to('#plant', { opacity: 0, duration: .5 }, 1.3)
+        tl.to(flora.pose, { sy: 1, sx: 1, duration: .2 }, 0)
+          .to(flora.pose, { y: -150, duration: .45, ease: 'power2.out' }, 0)
+          .to('#plant-shade', { attr: { rx: 0, ry: 0 }, duration: .4 }, 0)
+          .to(flora.pose, { y: 20, x: 250, rot: 82, duration: .7, ease: 'power2.in' }, .45)
+          .to(flora.pose, { opacity: 0, duration: .5 }, 1.3)
           // the kid lands on his bottom, then bounces back up
           .to(pose, { ...POSE.AIR, lean: 26, sx: 1.15, sy: .8, y: GROUND + 6, duration: .25, ease: 'power2.out', onUpdate: R }, 0)
           .to(pose, { ...POSE.STAND, lean: 0, sx: 1, sy: 1, y: GROUND, head: 0, duration: .7, ease: 'elastic.out(1,.45)', onUpdate: R }, .55)
@@ -1583,8 +1568,23 @@ export function createPlantGame(opts) {
     });
   }
 
+  /* crouched by the soil, the kid shuffles over and scoops each potato out as it comes */
+  let scoop = null;
+  function scoopFor(n) {
+    const side = n.x < pose.x ? -1 : 1, C = POSE.CROUCH;
+    scoop?.kill();
+    scoop = gsap.timeline({ defaults: { onUpdate: renderPose } })
+      // stays between the potatoes lying on the lawn, and leans over toward the one coming out
+      .to(pose, { x: clamp(n.x - side * 24, 410, 480), duration: .35, ease: 'power2.out' }, 0)
+      .to(pose, { y: GROUND + CROUCH_DROP - 10, duration: .12, yoyo: true, repeat: 1, ease: 'sine.out' }, 0)
+      .to(pose, { hLx: -18 + side * 14, hLy: -42, hRx: 18 + side * 14, hRy: -40, kLx: C.kLx, kRx: C.kRx, lean: side * 7, duration: .2, ease: 'power2.in' }, 0)
+      .to(pose, { hLx: -46, hLy: -128, hRx: 46, hRy: -128, lean: 0, duration: .22, ease: 'power2.out' })
+      .to(pose, { hLx: C.hLx, hLy: C.hLy, hRx: C.hRx, hRy: C.hRy, y: GROUND + CROUCH_DROP, duration: .3, ease: 'power2.inOut' });
+  }
+
   /* harvest, part two: every potato is now yours to dig out and carry to the basket */
   function enableDigging() {
+    gsap.to(pose, { ...POSE.CROUCH, y: GROUND + CROUCH_DROP, lean: 0, head: 0, duration: .6, ease: 'power2.inOut', onUpdate: renderPose });
     nodes.forEach((n, i) => {
       n.reach = true;
       n.el.classList.add('reachable');
@@ -1708,7 +1708,7 @@ export function createPlantGame(opts) {
     Sound.init();
     const w = toWorld(e.clientX, e.clientY);
     shakeNear(w.x, w.y);
-    Sound.noise(.35, { vol: .06, from: 1800, to: 600 });
+    Sound.rustle(.6, .08);
     burst(e.clientX, e.clientY, { n: 7, type: 'leaf', colors: LEAVES, angle: -Math.PI / 2, spread: 3, speed: [40, 190], life: [1.8, 3], gravity: 110, size: [5, 9], drag: .95 });
   }
   function tapGround(e) {
@@ -1738,6 +1738,15 @@ export function createPlantGame(opts) {
         .to(pose, { head: -14, sx: 1.06, sy: .95, duration: .16 })
         .to(pose, { head: 12, duration: .2 })
         .to(pose, { head: 0, sx: 1, sy: 1, duration: .25, ease: 'elastic.out(1,.5)' });
+      Sound.tone(520, .12, { type: 'triangle', vol: .09, to: 760 });
+      hearts(2);
+      return;
+    }
+    if (isGround && state === 'play') {     // busy digging: a happy wiggle without getting up
+      gsap.timeline({ defaults: { onUpdate: R } })
+        .to(pose, { head: -12, sx: 1.06, sy: .94, duration: .15 })
+        .to(pose, { head: 10, duration: .18 })
+        .to(pose, { head: 0, sx: 1, sy: 1, duration: .3, ease: 'elastic.out(1,.5)' });
       Sound.tone(520, .12, { type: 'triangle', vol: .09, to: 760 });
       hearts(2);
       return;
@@ -1774,8 +1783,10 @@ export function createPlantGame(opts) {
   }
 
   $('#sunwrap').addEventListener('pointerdown', tapSun);
-  ['#trunk', '#canopy-back', '#canopy-front', '#speckles', '#branches'].forEach(sel =>
-    $(sel).addEventListener('pointerdown', tapTree));
+  $('#flora').addEventListener('pointerdown', e => {
+    const w = toWorld(e.clientX, e.clientY);
+    if (flora && flora.hit(w.x, w.y)) tapTree(e);
+  });
   ['#ground-path', '#tufts'].forEach(sel => $(sel).addEventListener('pointerdown', tapGround));
   $('#basket').addEventListener('pointerdown', tapBasket);
   $('#kid').addEventListener('pointerdown', tapKid);
@@ -1795,7 +1806,16 @@ export function createPlantGame(opts) {
   function boot() {
     stage.classList.toggle('kind-ground', isGround);
     buildGround();
-    if (isGround) buildUnderground(); else { buildCanopy(); buildLadder(); }
+    flora = createFlora({ canvas: $('#flora'), spec, reduceMotion });
+    ticker.add(time => flora.render(time));
+    fruit3d = createFruits({ canvas: $('#fruit3d'), spec });
+    if (fruit3d) {
+      stage.classList.add('fruits-3d');
+      fruitPicture = () => `<img src="${fruit3d.sprite}" alt="" draggable="false">`;
+      ticker.add(drawFruit3d);
+    }
+    if (import.meta.env.DEV) window.__orchard = { flora, fruit3d };   // poke at it from the console
+    if (isGround) buildUnderground(); else buildLadder();
     buildFruits();
     applyLang();
     $('#sound').setAttribute('aria-pressed', String(Sound.on));
@@ -1819,6 +1839,8 @@ export function createPlantGame(opts) {
       gsap.globalTimeline.getChildren(true, true, true).forEach(child => child.kill());
       gsap.globalTimeline.timeScale(1);
       if (Sound.ctx) Sound.ctx.close().catch(() => {});
+      flora?.destroy();
+      fruit3d?.destroy();
     },
   };
 }

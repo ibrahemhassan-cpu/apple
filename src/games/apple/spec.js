@@ -63,21 +63,21 @@ export default {
   seed: `<svg viewBox="-20 -30 40 60"><path d="M0,-26 C12,-12 16,6 12,16 C8,26 -8,26 -12,16 C-16,6 -12,-12 0,-26Z" fill="#5A3319"/><ellipse cx="-4" cy="-4" rx="3" ry="7" fill="#9A6A3F"/></svg>`,
   seedSize: [34, 50],
 
-  tree: {
-    trunk: 'M330,1768 C360,1745 372,1700 374,1620 L378,1080 C376,1030 356,985 318,945 L340,928 C372,958 392,990 400,1020 C410,985 434,950 468,922 L488,940 C452,975 426,1030 424,1080 L428,1620 C430,1700 440,1745 474,1768 Z',
-    branches: [["M336,948 C300,900 250,860 190,835",16],["M474,934 C520,890 580,860 640,850",16],["M400,1030 C396,930 376,820 350,720",18],["M350,720 C330,640 300,590 250,540",12],["M350,720 C380,640 430,560 470,440",12],["M474,934 C500,840 540,740 590,640",13],["M590,640 C620,600 650,580 690,570",8],["M190,835 C160,800 140,760 130,720",8]],
-    canopy: {
-      cx: 400, cy: 610, rx: 300, ry: 310,
-      layers: [
-        { n: 40, r0: 58, r1: 92, fill: '#1C5A3A', k: 1, dx: 0, dy: 22, back: true },
-        { n: 38, r0: 50, r1: 82, fill: '#267045', k: .92, dx: 0, dy: 4 },
-        { n: 32, r0: 42, r1: 70, fill: '#34884D', k: .8, dx: -10, dy: -18 },
-        { n: 24, r0: 30, r1: 54, fill: '#52A956', k: .66, dx: -36, dy: -52 },
-        { n: 14, r0: 16, r1: 32, fill: '#8CCB6A', k: .5, dx: -70, dy: -96 },
-      ],
+  /* the real apple tree: a short, slightly crooked grey-brown trunk that opens into wide spreading limbs,
+     a rounded, fairly open crown, oval toothed leaves one by one along the shoots and in rosettes on the
+     fruiting spurs, each apple on its own short stem. Grown by games/plant/flora3d.js. */
+  flora: {
+    type: 'tree', seed: 21,
+    base: [400, 1768], trunkTop: 1080, trunkBend: [16, 1.1], trunkR: 30, flare: .7, flareH: 110,
+    seg: 24, influence: 140, kill: 36, tropism: [0, .04, 0], persist: .7, twig: 1.3,
+    crown: { cx: 405, cy: 640, rx: 335, ry: 300, rz: 220, bottom: 960, points: 800, shell: .45, core: .35 },
+    arrangement: 'alternate',
+    leaf: {
+      size: 31, sizeVar: .35, aspect: .58, curl: .2, fold: .12, roughness: .72, back: [1.15, 1.18, 1.1],
+      shoot: 3, perNode: 4, spur: 12, spurShare: .5,
     },
-    leaves: { n: 64, cx: 370, cy: 560, rx: 250, ry: 270, w: 7, h: 11, colors: ['#B9E38C', '#6FBF5F'] },
-    growFrom: [400, 980],
+    bark: { base: '#8A7B6E', light: '#ABA094', dark: '#5A4C41', crack: '#3A2F27', cracks: 30, crackW: 2.4, plate: 50, lichen: true, grain: 18, bump: 1 },
+    light: [400, 760, 620],
   },
 
   positions: [[262, 556], [345, 436], [488, 414], [596, 520], [660, 690], [520, 650], [395, 590], [292, 735], [172, 700], [604, 855]],

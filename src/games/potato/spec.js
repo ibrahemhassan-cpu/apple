@@ -69,19 +69,21 @@ export default {
   /* the camera goes this far below the lawn so you can see into the soil */
   world: { below: 600, down: 440 },
 
-  /* above the soil: a small bushy plant */
-  plant: {
-    stem: '#4E8F3A',
-    leaf: ['#5FAE4E', '#3F8E40'],
-    petal: '#F3E9FF',
+  /* above the soil, the real potato plant: soft green stems, compound leaves (pairs of oval leaflets with tiny
+     ones between them and one at the tip), and five-pointed pale flowers with a yellow cone. Grown in 3D by
+     games/plant/flora3d.js; the soil cross-section below stays a drawing. */
+  flora: {
+    type: 'potato', seed: 4,
+    base: [400, 1764], stem: '#4E8636', petal: '#EEE4FF', leafScale: 1.2,
     stems: [
-      ['M400,1764 C398,1710 388,1650 364,1592', 9],
-      ['M402,1764 C410,1700 428,1640 456,1584', 9],
-      ['M400,1764 C402,1700 404,1620 402,1548', 10],
-      ['M396,1724 C366,1706 336,1696 304,1694', 6],
-      ['M406,1716 C438,1700 470,1692 500,1692', 6],
+      { lean: -58, yaw: 30, len: 180 },
+      { lean: -34, yaw: -40, len: 225, flowers: 4 },
+      { lean: -12, yaw: 60, len: 250, flowers: 5 },
+      { lean: 10, yaw: -70, len: 240, flowers: 4 },
+      { lean: 32, yaw: 20, len: 215 },
+      { lean: 56, yaw: -20, len: 175 },
     ],
-    flowers: [[364, 1582], [456, 1574], [402, 1536]],
+    light: [400, 1640, 340],
   },
 
   /* below the soil */

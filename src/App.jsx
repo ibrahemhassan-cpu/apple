@@ -3,7 +3,11 @@ import { GAMES } from './fruits/registry.js';
 import Orchard from './screens/Orchard.jsx';
 
 export default function App() {
-  const [screen, setScreen] = useState({ name: 'orchard' });
+  const [screen, setScreen] = useState(() => {
+    // dev only: ?play=mango opens a game straight away
+    const id = import.meta.env.DEV && new URLSearchParams(location.search).get('play');
+    return GAMES[id] ? { name: 'game', id, run: 0 } : { name: 'orchard' };
+  });
 
   const play = id => setScreen({ name: 'game', id, run: Date.now() });
   const toOrchard = () => setScreen({ name: 'orchard' });

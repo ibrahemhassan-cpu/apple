@@ -1,11 +1,21 @@
 import { useSettings } from '../settings/SettingsContext.jsx';
 import { sfx } from '../settings/sfx.js';
+import { useInstall } from '../settings/install.js';
 
-/* sound + language, the same sticker buttons the game uses */
+/* install (when the browser offers it) + sound + language, the same sticker buttons the game uses */
 export default function TopBar() {
   const { lang, setLang, sound, setSound, t } = useSettings();
+  const { canInstall, install } = useInstall();
   return (
     <div className="topbar">
+      {canInstall && (
+        <button type="button" className="install-btn" onClick={() => { sfx.open(sound); install(); }}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {t('installApp')}
+        </button>
+      )}
       <button
         type="button"
         className="round-btn"

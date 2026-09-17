@@ -99,6 +99,7 @@ export const STR = {
   levelMidHint:  { ar: 'تحفر وتسقي بنفسك', en: 'You dig and water' },
   levelHighHint: { ar: 'تحفر وتسقي وتطلّع الشمس', en: 'Dig, water and raise the sun' },
   close:         { ar: 'قفل', en: 'Close' },
+  installApp:    { ar: 'نزّل اللعبة', en: 'Install' },
 
   appleName:     { ar: 'تفاح', en: 'Apple' },
   appleSeed:     { ar: 'بذرة صغيرة سودا', en: 'A small dark seed' },

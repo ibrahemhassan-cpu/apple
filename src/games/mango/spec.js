@@ -73,34 +73,22 @@ export default {
   seed: `<svg viewBox="-30 -42 60 84"><ellipse cx="0" cy="0" rx="22" ry="36" fill="#EAD7A8" transform="rotate(-14)"/><g fill="none" stroke="#C9A96E" stroke-width="2.4" stroke-linecap="round" transform="rotate(-14)"><path d="M-16,-20 C-6,-16 6,-16 16,-20"/><path d="M-20,-4 C-8,0 8,0 20,-4"/><path d="M-20,12 C-8,16 8,16 20,12"/><path d="M-14,27 C-4,30 4,30 14,27"/></g><ellipse cx="-7" cy="-12" rx="5" ry="11" fill="#fff" opacity=".35" transform="rotate(-14)"/></svg>`,
   seedSize: [46, 64],
 
-  tree: {
-    // a thicker trunk that splits low into two big spreading limbs
-    trunk: 'M318,1768 C352,1742 364,1690 366,1600 L370,1180 C368,1120 340,1080 290,1040 L316,1018 C360,1050 390,1090 400,1120 C412,1086 446,1046 500,1014 L524,1036 C470,1072 434,1120 432,1180 L436,1600 C438,1690 452,1742 488,1768 Z',
-    branches: [
-      ['M300,1036 C240,990 170,960 100,950', 18],
-      ['M512,1026 C580,980 650,960 720,950', 18],
-      ['M400,1120 C398,1020 390,900 380,780', 20],
-      ['M300,1036 C280,940 250,860 210,780', 13],
-      ['M512,1026 C540,940 570,860 600,780', 13],
-      ['M380,780 C340,700 300,650 240,610', 11],
-      ['M380,780 C420,700 470,650 540,610', 11],
-      ['M100,950 C80,920 60,880 50,840', 8],
-      ['M720,950 C740,920 760,880 770,840', 8],
-    ],
-    // a wide, low, dense dome in deep greens
-    canopy: {
-      cx: 400, cy: 700, rx: 400, ry: 300,
-      layers: [
-        { n: 50, r0: 60, r1: 96, fill: '#174A2E', k: 1, dx: 0, dy: 26, back: true },
-        { n: 46, r0: 52, r1: 86, fill: '#1F5E39', k: .93, dx: 0, dy: 6 },
-        { n: 38, r0: 44, r1: 72, fill: '#2A7143', k: .8, dx: -12, dy: -20 },
-        { n: 26, r0: 30, r1: 56, fill: '#3C8A4F', k: .66, dx: -40, dy: -60 },
-        { n: 14, r0: 16, r1: 32, fill: '#6BB25F', k: .48, dx: -80, dy: -110 },
-      ],
+  /* the real mango tree: a tall, straight, thick trunk with dark fissured bark, a broad dense dome of a crown,
+     long narrow leathery leaves bunched in rosettes at the shoot tips (the new ones hang limp and copper-red),
+     and every mango dangling on a long stalk at the edge of the crown. Grown by games/plant/flora3d.js. */
+  flora: {
+    type: 'tree', seed: 8,
+    base: [400, 1768], trunkTop: 1150, trunkBend: [6, .7], trunkR: 44, flare: .55, flareH: 120,
+    seg: 22, influence: 130, kill: 30, tropism: [0, .1, 0], persist: .45, twig: 1.6,
+    crown: { cx: 400, cy: 705, rx: 390, ry: 320, rz: 290, bottom: 1010, points: 1400 },
+    arrangement: 'whorl',
+    leaf: {
+      size: 50, sizeVar: .4, aspect: .27, curl: .34, fold: .16, roughness: .42, back: [.95, 1.08, .95],
+      whorl: [11, 16], youngShare: .09, youngColor: '#A8403A',
     },
-    // mango leaves are long and narrow
-    leaves: { n: 90, cx: 390, cy: 660, rx: 350, ry: 250, w: 4, h: 19, colors: ['#8CCB6A', '#4E9E55'] },
-    growFrom: [400, 1100],
+    bark: { base: '#75655A', light: '#968679', dark: '#4A3D34', crack: '#2B221C', cracks: 46, crackW: 3.4, plate: 120, lichen: false, grain: 22, bump: 1 },
+    stalk: { len: 72, lean: 30, r: 1.9, color: '#6D6A3B' },
+    light: [400, 780, 680],
   },
 
   // five near the ladder (by hand) and five out on the edges and the crown (by pole)

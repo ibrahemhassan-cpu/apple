@@ -49,7 +49,13 @@
 
 /* ---------- world ---------- */
 #world { position: absolute; left: 0; z-index: 3; will-change: transform; }
-#scene { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+#scene, #scene-back { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+/* the scene's empty areas let taps through to the 3D plant underneath; its drawn parts still catch them */
+#scene { pointer-events: none; }
+#scene > * { pointer-events: visiblePainted; }
+#flora { position: absolute; left: 0; top: 0; visibility: hidden; will-change: transform; touch-action: none; }
+#fruit3d { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform; }
+.fruits-3d .fruit-node svg { visibility: hidden; animation: none; }   /* the 3D fruit is drawn in its place */
 .rail { stroke: #A86B35; stroke-width: 13; stroke-linecap: round; fill: none; }
 .rail-hi { stroke: #DDA566; stroke-width: 3.5; stroke-linecap: round; fill: none; }
 .rung { stroke: #94592A; stroke-width: 9; stroke-linecap: round; }
@@ -244,7 +250,7 @@
 .basket-body { position: absolute; inset: 0; will-change: transform; }
 .b-back, .b-front, .b-fruits { position: absolute; inset: 0; width: 100%; height: 100%; }
 .b-fruit { position: absolute; width: 26.15%; aspect-ratio: 240 / 260; }
-.b-fruit svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.b-fruit svg, .b-fruit img { width: 100%; height: 100%; overflow: visible; display: block; }
 .basket-tag {
   position: absolute; left: 50%; top: -22%; translate: -50% 0; rotate: -4deg; z-index: 2;
   display: flex; align-items: baseline; gap: 6px; white-space: nowrap;
@@ -304,7 +310,8 @@
 }
 #hand { position: absolute; left: 0; top: 0; width: 52px; visibility: hidden; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .25)); }
 .flyer { position: absolute; pointer-events: auto; touch-action: none; cursor: grabbing; will-change: transform; }
-.flyer svg { width: 100%; height: 100%; overflow: visible; display: block; filter: drop-shadow(0 10px 8px rgba(20, 30, 40, .3)); }
+.flyer svg, .flyer img { width: 100%; height: 100%; overflow: visible; display: block; filter: drop-shadow(0 10px 8px rgba(20, 30, 40, .3)); }
+.flyer img, .b-fruit img { -webkit-user-drag: none; user-select: none; pointer-events: none; }
 
 /* ---------- keyframes ---------- */
 @keyframes spin { to { rotate: 360deg; } }
