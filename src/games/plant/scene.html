@@ -117,6 +117,7 @@
     <canvas id="fruit3d" aria-hidden="true"></canvas>
     <div id="fruits"></div>
     <div id="flutters"></div>
+    <div id="pests"></div>
   </div>
 
   <div id="tint" class="layer"></div>
@@ -152,6 +153,7 @@
     <div class="captions">
       <h2 id="caption"></h2>
       <p id="subcaption"></p>
+      <button id="stop" type="button" data-icon="done" style="display:none"><span data-i18n="stopPicking">خلاص كده</span></button>
       <div id="climb-controls">
         <button id="climb-all" type="button">
           <span data-i18n="goTop">اطلع للآخر</span>
@@ -203,9 +205,15 @@
     <div id="finale" role="dialog" aria-labelledby="finale-title">
       <h2 id="finale-title" data-i18n="finaleTitle">برافو! السلة اتملت</h2>
       <p data-i18n="finaleBody">قطفت ١٠ تفاحات من الشجرة اللي زرعتها بنفسك.</p>
+      <div id="stars">
+        <span class="star"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5-4.7-4.6 6.5-.9z"/></svg></span>
+        <span class="star"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5-4.7-4.6 6.5-.9z"/></svg></span>
+        <span class="star"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5-4.7-4.6 6.5-.9z"/></svg></span>
+      </div>
       <div class="finale-actions">
-        <button id="replay" type="button" data-i18n="replay">ازرع تفاحة جديدة</button>
-        <button id="to-orchard" type="button" data-i18n="home">البستان</button>
+        <button id="next" type="button" data-icon="next"><span data-i18n="nextLevel">المرحلة الجاية</span></button>
+        <button id="replay" type="button" data-icon="replant"><span data-i18n="replay">ازرع تفاحة جديدة</span></button>
+        <button id="to-orchard" type="button" data-icon="home"><span data-i18n="home">البستان</span></button>
       </div>
     </div>
   </div>

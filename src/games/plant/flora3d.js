@@ -820,6 +820,9 @@ export function createFlora({ canvas, spec, reduceMotion, quality }) {
 
   function render(time) {
     if (!root.visible) return;
+    // the canvas is pinned to the screen every frame, drawn or not: it must never lag behind the camera
+    const pin = `translate3d(${view.tx}px,${view.ty}px,0)`;
+    if (canvas.style.transform !== pin) canvas.style.transform = pin;
     // draw when something really moved; the breeze alone only at Q.calmFps
     const plantKey = `${growth.wood},${growth.leaves},${growth.flowers},${pose.x},${pose.y},${pose.rot},${pose.sx},${pose.sy},${pose.opacity}`;
     const key = `${view.L},${view.R},${view.T},${view.B},${view.tx},${view.ty}|${plantKey}`;
@@ -828,7 +831,6 @@ export function createFlora({ canvas, spec, reduceMotion, quality }) {
     if (plantKey !== lastKey.split('|')[1]) renderer.shadowMap.needsUpdate = true;   // the plant changed shape
     lastKey = key;
     lastDraw = time;
-    canvas.style.transform = `translate3d(${view.tx}px,${view.ty}px,0)`;
     camera.left = view.L; camera.right = view.R; camera.top = -view.T; camera.bottom = -view.B;
     camera.updateProjectionMatrix();
 

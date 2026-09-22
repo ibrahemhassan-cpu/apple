@@ -1,0 +1,6 @@
+timmy/ — the boy.
+  The character and his moves are from Mixamo (https://www.mixamo.com, Adobe), downloaded by the project owner
+  and packed smaller for the game (a lighter mesh, 1024px textures, 13 clips). Mixamo characters and animations
+  are royalty-free for use in games and other projects; the raw files are not to be redistributed on their own.
+
+The market seller, the pests and the garden are drawn in code (SVG), no files needed.

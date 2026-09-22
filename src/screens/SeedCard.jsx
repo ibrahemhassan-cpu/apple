@@ -2,19 +2,14 @@ import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { FruitArt, SeedArt } from '../fruits/art.jsx';
-import { LEVELS } from '../i18n/strings.js';
 import { useSettings } from '../settings/SettingsContext.jsx';
+import { Icon } from '../ui/icons.jsx';
 import { sfx } from '../settings/sfx.js';
 
-const LEVEL_TEXT = {
-  easy: ['levelEasy', 'levelEasyHint'],
-  mid: ['levelMid', 'levelMidHint'],
-  high: ['levelHigh', 'levelHighHint'],
-};
-
-/* what you're about to grow: the fruit, the seed hiding inside it, one line of how it grows, and how hard */
-export default function SeedCard({ fruit, onClose, onPlay }) {
-  const { t, level, setLevel, sound } = useSettings();
+/* what you're about to grow: the fruit, the seed hiding inside it, how it grows,
+   what this level asks the basket for, and the new thing you'll learn in it */
+export default function SeedCard({ level, fruit, onClose, onPlay }) {
+  const { t, n, sound } = useSettings();
   const scope = useRef(null);
   const playBtn = useRef(null);
 
@@ -71,26 +66,18 @@ export default function SeedCard({ fruit, onClose, onPlay }) {
         <p className="seed-kind reveal">{t(fruit.text.seed)}</p>
         <p className="seed-fact reveal">{t(fruit.text.fact)}</p>
 
-        <fieldset className="levels reveal">
-          <legend>{t('chooseLevel')}</legend>
-          {LEVELS.map(id => (
-            <label key={id} className={`level ${level === id ? 'is-on' : ''}`}>
-              <input
-                type="radio"
-                name="level"
-                id={`level-${id}`}
-                value={id}
-                checked={level === id}
-                onChange={() => { setLevel(id); sfx.pop(sound); }}
-              />
-              <span className="level-name">{t(LEVEL_TEXT[id][0])}</span>
-              <span className="level-hint">{t(LEVEL_TEXT[id][1])}</span>
-            </label>
-          ))}
-        </fieldset>
+        <div className="order reveal">
+          <p className="order-head">{t('orderTitle')} <b>{n(level.order)}</b></p>
+          <p className="order-icons" aria-hidden="true">
+            {Array.from({ length: level.order }, (_, i) => (
+              <span key={i} className="order-one"><FruitArt id={fruit.id} /></span>
+            ))}
+          </p>
+        </div>
+        <p className="learn reveal"><span aria-hidden="true">✨</span> {t(level.learn)}</p>
 
         <button type="button" className="play-btn reveal" ref={playBtn} onClick={play}>
-          {t('plantIt')}
+          <Icon name="plant" />{t('plantIt')}
         </button>
       </section>
     </div>

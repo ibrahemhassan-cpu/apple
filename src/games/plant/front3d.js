@@ -1,16 +1,21 @@
-/* The fruit itself, in 3D: a real-looking apple, mango or potato for every one on the plant.
-   The clickable .fruit-node divs stay exactly where they are (they still do the picking, dragging and rings);
-   this only draws what's inside them, copying each node's scale, spin and fade every frame.
-   It also renders one still picture of the fruit, used for the ones flying to the basket and lying in it.
+/* Everything drawn in front of the scene, on one canvas above it: the fruit, and the boy.
 
-   Models are built in the fruit's SVG box units (x −120…120, y −140…120, y down), so a model fills
-   its node exactly the way the old drawing did. */
+   The fruit: a real apple, mango or potato for every one on the plant. The clickable .fruit-node divs stay
+   exactly where they are (they still do the picking, dragging and rings); this only draws what's inside them,
+   copying each node's scale, spin and fade every frame. It also renders one still picture of the fruit, used
+   for the ones flying to the basket and lying in it.
+   The boy: the character model in kidModel.js, driven by the engine's `pose` — where he is, which way he
+   faces, and what he's doing (which animation plays).
+
+   Fruit models are built in the fruit's SVG box units (x −120…120, y −140…120, y down), so a model fills
+   its node exactly the way the old drawing did; the boy is in world units, like the scene around him. */
 import {
   WebGLRenderer, Scene, OrthographicCamera, Group, Mesh, LatheGeometry, SphereGeometry, TubeGeometry, PlaneGeometry,
   MeshPhysicalMaterial, MeshStandardMaterial, HemisphereLight, DirectionalLight, CanvasTexture, Vector2, Vector3,
   CatmullRomCurve3, SplineCurve, BufferAttribute, DoubleSide, SRGBColorSpace, ACESFilmicToneMapping,
 } from 'three';
 import { leafTexture } from './flora3d.js';
+import { createModelKid } from './kidModel.js';
 
 function rng(seed) {
   return () => {
@@ -230,10 +235,50 @@ function potatoModel(r) {
 }
 
 const MODELS = { apple: appleModel, mango: mangoModel, potato: potatoModel };
+
+/* A picture of a fruit, rendered once from its 3D model (framed like the SVG box, 240 × 260), for the
+   screens that show fruit without a 3D scene of their own: the market's crates and basket, the map.
+   Resolves to a PNG data URL, or null without WebGL (callers then fall back to the drawing). */
+const pictures = new Map();
+export function fruitPicture(id) {
+  if (pictures.has(id)) return pictures.get(id);
+  const job = new Promise(resolve => {
+    if (!MODELS[id]) return resolve(null);
+    const canvas = document.createElement('canvas');
+    let renderer;
+    try {
+      renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+    } catch (e) {
+      return resolve(null);
+    }
+    renderer.setClearColor(0x000000, 0);
+    renderer.toneMapping = ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.setPixelRatio(1);
+    renderer.setSize(360, 390, false);
+    const scene = new Scene();
+    const sun = new DirectionalLight(0xFFF2DD, 2.6);
+    sun.position.set(.7, .8, 1);
+    scene.add(new HemisphereLight(0xDDEEFF, 0x6A5A3A, 1.5), sun, MODELS[id](rng(13), true));
+    const cam = new OrthographicCamera(-120, 120, 140, -120, 1, 3000);
+    cam.position.set(0, 0, 1500);
+    renderer.compileAsync(scene, cam).then(() => {
+      renderer.render(scene, cam);
+      resolve(canvas.toDataURL('image/png'));
+    }).catch(() => resolve(null)).finally(() => {
+      scene.traverse(o => { o.geometry?.dispose(); if (o.material) { o.material.map?.dispose(); o.material.dispose(); } });
+      renderer.dispose();
+      renderer.forceContextLoss();
+    });
+  });
+  pictures.set(id, job);
+  return job;
+}
+
 /* =====================================================================
    renderer
    ===================================================================== */
-export function createFruits({ canvas, spec, quality }) {
+export function createFront({ canvas, spec, quality, boy: withBoy = false }) {
   let Q = quality;
   if (!MODELS[spec.id]) return null;              // no model yet for this fruit: the engine keeps its drawing
   let renderer;
@@ -256,6 +301,14 @@ export function createFruits({ canvas, spec, quality }) {
 
   const r = rng(13);
   const model = MODELS[spec.id](r, Q.name === 'high');
+
+  /* the 3D boy (only when asked for), behind the fruit and in front of everything else */
+  const kid = withBoy ? createModelKid(`${import.meta.env.BASE_URL}models/timmy/`) : null;
+  if (kid) {
+    kid.group.position.z = 300;
+    kid.group.visible = false;
+    scene.add(kid.group);
+  }
 
   /* one still picture of the fruit for the flyers and the basket, framed like the SVG box.
      Until it's ready (a moment after the game opens) the drawing is used. */
@@ -308,18 +361,31 @@ export function createFruits({ canvas, spec, quality }) {
       Q = q;
       this.resize(size.w, size.h);
     },
-    /* states: [{ x, y, size, scale, rot, sway, alpha }] in world units / degrees */
-    render(states, time) {
-      // redraw when a fruit or the camera really moved; the gentle sway alone only at Q.calmFps
+    /* states: [{ x, y, size, scale, rot, sway, alpha }] in world units / degrees;
+       boy: { visible, pose, turn } — the engine's own pose object */
+    render(states, boy, time) {
+      if (!kid) boy = { ...boy, visible: false };
+      // redraw when a fruit, the boy or the camera really moved; the gentle sway alone only at Q.calmFps
       let key = `${view.L},${view.T},${view.R},${view.B}`;
       for (const s of states) key += `|${s.x},${s.y},${s.size},${s.scale.toFixed(3)},${s.rot.toFixed(1)},${s.alpha.toFixed(2)}`;
+      if (boy.visible) {
+        const p = boy.pose;
+        key += `|k${p.act},${p.shotN || 0},${(p.sink || 0).toFixed(1)},${boy.turn.toFixed(1)},${p.x.toFixed(1)},${p.y.toFixed(1)},${p.lean.toFixed(1)},${p.head.toFixed(1)},${p.sx.toFixed(3)},${p.sy.toFixed(3)}`;
+        key += `,${p.hLx.toFixed(1)},${p.hLy.toFixed(1)},${p.hRx.toFixed(1)},${p.hRy.toFixed(1)}`;
+        key += `,${p.kLx.toFixed(1)},${p.kLy.toFixed(1)},${p.fLx.toFixed(1)},${p.fLy.toFixed(1)},${p.kRx.toFixed(1)},${p.kRy.toFixed(1)},${p.fRx.toFixed(1)},${p.fRy.toFixed(1)}`;
+      }
+      const pin = `translate3d(${view.tx}px,${view.ty}px,0)`;
+      if (canvas.style.transform !== pin) canvas.style.transform = pin;   // pinned to the screen, drawn or not
       if (key === lastKey && time - lastDraw < 1 / Q.calmFps - .004) return;
       lastKey = key;
       lastDraw = time;
-      canvas.style.transform = `translate3d(${view.tx}px,${view.ty}px,0)`;
       camera.left = view.L; camera.right = view.R; camera.top = -view.T; camera.bottom = -view.B;
       camera.updateProjectionMatrix();
-      let any = false;
+      if (kid) {
+        kid.group.visible = boy.visible;
+        if (boy.visible) kid.update(boy.pose, boy.turn, time);
+      }
+      let any = boy.visible;
       states.forEach((s, i) => {
         const f = fruits[i];
         f.outer.visible = s.alpha > .01 && s.scale > .001;
@@ -343,6 +409,7 @@ export function createFruits({ canvas, spec, quality }) {
     },
     destroy() {
       destroyed = true;
+      kid?.dispose();
       scene.traverse(o => {
         if (o.geometry) o.geometry.dispose();
         if (o.material) { o.material.map?.dispose(); o.material.dispose(); }

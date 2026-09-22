@@ -32,7 +32,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,jpg,ico,woff2,glb,gltf,bin}'],
+        // the 3D boy is switched off (engine.js BOY_3D): don't make phones download him
+        globIgnores: ['models/timmy/**'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: 'index.html',
       },

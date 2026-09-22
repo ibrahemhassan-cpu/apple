@@ -1,0 +1,172 @@
+/* عربية السوق */
+.market { position: fixed; inset: 0; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.m-sky { position: absolute; inset: 0; background: linear-gradient(#5BB3E6 0%, #A4D9F2 45%, #DDF1F1 76%, #FFE7C4 100%); }
+.m-hills { position: absolute; left: 0; bottom: 0; width: 100%; height: 46%; }
+
+.m-hud { position: absolute; top: 16px; inset-inline-start: 16px; z-index: 5; display: flex; gap: 10px; }
+
+/* one column on a phone held upright: cart, basket, crates. Side by side when the screen is wide. */
+.m-stage {
+  position: absolute; inset: 0; padding: 72px 16px 12px;
+  display: grid; grid-template-areas: "cart" "basket" "crates";
+  grid-template-rows: minmax(0, 1.25fr) minmax(0, .9fr) minmax(0, .8fr);
+  justify-items: center; align-items: center; gap: 6px;
+}
+@media (orientation: landscape) {
+  .m-stage {
+    padding: 64px 24px 10px;
+    grid-template-areas: "cart basket" "crates crates";
+    grid-template-columns: 1.1fr .9fr; grid-template-rows: minmax(0, 1.3fr) minmax(0, .8fr);
+  }
+}
+
+/* ---------- the cart ---------- */
+/* each area is a box of its own size; what's inside fits it both ways, keeping its shape */
+.m-cart, .m-basket, .m-crates { container-type: size; width: 100%; height: 100%; display: grid; place-items: center; }
+.m-cart { grid-area: cart; }
+.m-cart-box { position: relative; width: min(100cqw, 100cqh * 520 / 380); aspect-ratio: 520 / 380; }
+.m-cart-art { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 10px 8px rgba(40, 30, 20, .25)); }
+/* the seller behind the counter, on the left; his legs are hidden by the counter */
+.m-seller { position: absolute; left: 5%; top: 8%; width: 50%; height: 72%; pointer-events: none; }
+.m-seller { overflow: visible; }
+.s-arm { stroke: #5B95C9; stroke-width: 17; stroke-linecap: round; }
+.s-hand { fill: #EDB48C; }
+/* the order, pinned to the right pole, beside him */
+.m-note {
+  position: absolute; left: 55%; top: 20%; width: 42%; rotate: 3deg;
+  padding: 3% 5% 4%; display: grid; gap: 2px;
+  background: #FFFDF6; border: 3px solid var(--ink); border-radius: 12px; box-shadow: 0 5px 0 rgba(27, 31, 59, .35);
+}
+.m-note::before {                                        /* the pin */
+  content: ''; position: absolute; top: -9px; left: 50%; translate: -50% 0; width: 16px; height: 16px;
+  border-radius: 50%; background: var(--crimson); border: 2.5px solid var(--ink);
+}
+.m-note-head { margin: 0; text-align: center; font: 400 clamp(.95rem, 3.4vmin, 1.4rem)/1.2 var(--display); color: var(--crimson); }
+.m-row {
+  position: relative; display: flex; align-items: center; gap: 6px; padding: 1px 6px; border-radius: 10px;
+  transition: background .3s;
+}
+.m-row.is-done { background: #DDF3D5; }
+.m-row-pic { width: clamp(26px, 7vmin, 42px); flex: none; }
+.m-row-pic svg { width: 100%; display: block; }
+img.m-row-pic { display: block; height: auto; }
+.m-row-n { font: 400 clamp(1.3rem, 5vmin, 2rem)/1 var(--display); color: var(--ink); min-width: 1.2ch; text-align: center; }
+.m-pips { display: flex; flex-wrap: wrap; gap: 3px; flex: 1; }
+.m-pips i { width: clamp(9px, 2.4vmin, 13px); aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--ink); background: #fff; }
+.m-pips i.on { background: #2C7A47; }
+.m-tick { position: absolute; inset-inline-end: 4px; font: 700 1.3rem/1 var(--body); color: #2C7A47; text-shadow: 0 0 4px #DDF3D5, 0 0 4px #DDF3D5; }
+.m-stamp {
+  position: absolute; inset-inline-end: 6%; bottom: 10%; opacity: 0; pointer-events: none;
+  padding: 2px 10px; border: 4px solid #2C7A47; border-radius: 10px; color: #2C7A47;
+  font: 400 clamp(1.1rem, 4vmin, 1.7rem)/1.1 var(--display); background: rgba(255, 255, 255, .7);
+}
+.m-bubble {
+  position: absolute; top: -9%; left: 0; max-width: 56%; margin: 0; z-index: 2;
+  padding: 8px 14px; border-radius: 18px; background: #fff; border: 3px solid var(--ink);
+  font: 700 clamp(1rem, 4vmin, 1.35rem)/1.35 var(--body); color: var(--ink); text-align: center;
+  box-shadow: 0 4px 0 rgba(27, 31, 59, .3); animation: m-pop .4s cubic-bezier(.3, 1.6, .5, 1);
+}
+.m-bubble::after {
+  content: ''; position: absolute; bottom: -12px; left: 52%; width: 16px; height: 16px;
+  background: #fff; border-right: 3px solid var(--ink); border-bottom: 3px solid var(--ink); rotate: 45deg;
+}
+
+/* the cat that peeks out by the wheel — the hidden friend */
+.m-cat {
+  all: unset; display: block; position: absolute; bottom: 4%; inset-inline-start: 34%; width: 15%; aspect-ratio: 120 / 90;
+  cursor: pointer; z-index: 1;
+}
+.m-cat svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.m-cat.is-found svg { filter: drop-shadow(0 0 10px rgba(255, 211, 110, .9)); }
+
+/* ---------- the basket ---------- */
+.m-basket { grid-area: basket; }
+.m-basket-box { position: relative; width: min(80cqw, 100cqh * 260 / 230); aspect-ratio: 260 / 230; }
+.m-basket-body { position: absolute; inset: 0; transform-origin: 50% 100%; }
+.m-b-back, .m-b-front, .m-b-fruits { position: absolute; inset: 0; width: 100%; height: 100%; }
+.m-b-fruit { position: absolute; width: 26.15%; aspect-ratio: 240 / 260; animation: m-drop .35s ease-out; }
+.m-b-fruit .m-pic, .m-b-fruit img, .m-b-fruit svg { width: 100%; height: 100%; display: block; }
+.m-basket-box.is-over .m-basket-body { scale: 1.08; transition: scale .2s; }
+.m-basket-tag {
+  position: absolute; left: 50%; top: -4%; translate: -50% 0; rotate: -4deg; white-space: nowrap;
+  padding: 1px 14px 3px; border-radius: 999px; background: var(--cream); border: 2.5px solid var(--ink);
+  box-shadow: 0 4px 0 var(--ink); font: 700 1rem/1.4 var(--body); color: var(--ink);
+}
+.m-basket-tag b { font: 400 1.4rem/1 var(--display); color: var(--crimson); }
+
+/* ---------- the crates ---------- */
+.m-crates { grid-area: crates; display: flex; justify-content: center; align-items: end; gap: 3cqw; }
+.m-crate {
+  all: unset; display: block; box-sizing: border-box; position: relative; cursor: grab; touch-action: none;
+  /* as big as the row allows: fewer crates, bigger crates */
+  width: min((94cqw - (var(--n) - 1) * 3cqw) / var(--n), 100cqh * 200 / 150, 240px); aspect-ratio: 200 / 150; flex: none;
+}
+.m-crate:active { cursor: grabbing; }
+.m-crate:focus-visible { outline: 3px solid var(--gold); outline-offset: 4px; border-radius: 12px; }
+.m-crate-front { position: absolute; left: 0; bottom: 0; width: 100%; height: 80%; }
+.m-crate-pile { position: absolute; left: 6%; right: 6%; bottom: 44%; height: 56%; }
+.m-pile { position: absolute; width: 36%; aspect-ratio: 240 / 260; }
+.m-pile svg { width: 100%; display: block; }
+img.m-pile { display: block; height: auto; }
+.m-pile-0 { left: 2%; bottom: 0; rotate: -12deg; }
+.m-pile-1 { left: 32%; bottom: -4%; rotate: 8deg; }
+.m-pile-2 { left: 62%; bottom: 0; rotate: -6deg; }
+.m-pile-3 { left: 16%; bottom: 30%; rotate: 14deg; }
+.m-pile-4 { left: 47%; bottom: 32%; rotate: -10deg; }
+.m-pile-5 { left: 32%; bottom: 58%; rotate: 4deg; }
+.m-crate-tag {                                          /* on the crate's cream label */
+  position: absolute; left: 50%; bottom: 39%; translate: -50% 50%; white-space: nowrap;
+  font: 400 clamp(.85rem, 2.8vmin, 1.2rem)/1 var(--display); color: var(--ink);
+}
+.m-crate.is-hint { animation: m-wiggle .9s ease-in-out 2; }
+
+/* ---------- things flying about ---------- */
+.m-fly-layer { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+.m-fly { position: absolute; left: 0; top: 0; will-change: transform; filter: drop-shadow(0 10px 8px rgba(20, 30, 40, .3)); }
+.m-fly img, .m-fly .m-pic, .m-fly svg { width: 100%; height: 100%; display: block; }
+.m-count {
+  position: absolute; left: 0; top: 0; font: 400 clamp(3rem, 12vmin, 5.5rem)/1 var(--display);
+  color: var(--cream); text-shadow: 0 5px 0 var(--ink), 0 0 30px rgba(255, 211, 110, .9);
+}
+.m-count-apple { color: #FFD9D9; }
+.m-count-mango { color: #FFE9A8; }
+.m-count-potato { color: #F4DDB5; }
+.m-heart { position: absolute; left: 0; top: 0; font-size: 28px; color: #FF6F91; text-shadow: 0 2px 0 rgba(27, 31, 59, .3); }
+.m-heart:nth-child(3n) { color: var(--gold); }
+.m-confetti { position: absolute; left: 0; top: 0; width: 10px; height: 16px; border-radius: 2px; }
+
+/* ---------- the finale ---------- */
+.m-finale {
+  position: absolute; left: 50%; top: 50%; translate: -50% -50%; rotate: -2deg; z-index: 8;
+  width: min(100vw - 32px, 460px); padding: 22px 24px 26px; text-align: center;
+  color: var(--ink); background: var(--cream);
+  border: 3px solid var(--ink); border-radius: 28px; box-shadow: 0 10px 0 var(--ink);
+}
+.m-finale h2 { margin: 0; font: 400 clamp(2rem, 7vw, 3rem)/1.2 var(--display); color: var(--crimson); }
+.m-finale p { margin: 4px auto 14px; max-width: 32ch; font: 500 1.1rem/1.55 var(--body); }
+.m-stars { display: flex; justify-content: center; gap: 10px; margin-bottom: 16px; }
+.m-star {
+  width: clamp(40px, 11vw, 54px); aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%;
+  border: 2.5px solid var(--ink); background: #EDE6D6; color: #C9BFA8;
+}
+.m-star svg { width: 74%; fill: currentColor; }
+.m-star.won { background: var(--gold); color: #E8A417; box-shadow: 0 0 18px rgba(255, 211, 110, .8); }
+.m-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.m-actions button {
+  display: inline-flex; align-items: center; gap: .4em;
+  cursor: pointer; padding: 10px 22px 12px; border-radius: 999px;
+  font: 400 1.3rem/1.2 var(--display); border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink);
+  transition: translate .15s, box-shadow .15s;
+}
+.m-actions button:active { translate: 0 4px; box-shadow: 0 2px 0 var(--ink); }
+.m-next { color: var(--ink); background: var(--gold); }
+.m-replay { color: var(--cream); background: #2C7A47; }
+.m-home { color: var(--ink); background: var(--cream); }
+
+@keyframes m-pop { from { transform: scale(.4); opacity: 0; } }
+@keyframes m-drop { from { transform: translateY(-40%) scale(1.2); } }
+@keyframes m-wiggle { 0%, 100% { rotate: 0deg; } 25% { rotate: -5deg; } 75% { rotate: 5deg; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .m-bubble, .m-b-fruit, .m-crate.is-hint { animation: none; }
+}

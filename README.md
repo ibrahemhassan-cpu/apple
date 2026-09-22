@@ -44,11 +44,17 @@ src/
   app.css                    الألوان والخطوط وشكل شاشة البستان
   i18n/strings.js            كل الكلام بالعربي والإنجليزي
   settings/                  اللغة والمستوى والصوت (بتتحفظ)
+  levels/                    سلّم المراحل (levels.js) والتقدم المحفوظ (progress.js)
   fruits/registry.js         سجل الفواكه
   fruits/art.jsx             رسومات الفواكه وبذورها
-  screens/                   البستان + كارت البذرة
+  screens/                   خريطة المراحل + كارت المرحلة
   games/plant/               المحرك المشترك: engine.js + scene.html + scene.css + flora3d.js (النبات 3D)
   games/<fruit>/spec.js      مواصفات كل فاكهة ونباتها الحقيقي
 vanilla/                     النسخة القديمة من غير React (بتشتغل بفتح index.html)
 FRUITS.md                    الدليل الكامل وخطوات إضافة فاكهة
+LEVELS.md                    خطة المراحل: الطلبات، السوق، الآفات، النجوم
 ```
+
+## Credits
+
+The characters (the boy, the market seller, the pests and their friends) are drawn in code. A 3D Mixamo boy is kept behind a switch (`BOY_3D` in engine.js, files in `public/models/timmy/`) — see `public/models/LICENSE.txt`.

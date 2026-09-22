@@ -56,6 +56,8 @@
 #flora { position: absolute; left: 0; top: 0; visibility: hidden; will-change: transform; touch-action: none; }
 #fruit3d { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform; }
 .fruits-3d .fruit-node svg { visibility: hidden; animation: none; }   /* the 3D fruit is drawn in its place */
+/* the drawn boy stays as the tap target (taps still land on invisible shapes) while the 3D one is drawn */
+.boy-3d #kid { opacity: 0; }
 .rail { stroke: #A86B35; stroke-width: 13; stroke-linecap: round; fill: none; }
 .rail-hi { stroke: #DDA566; stroke-width: 3.5; stroke-linecap: round; fill: none; }
 .rung { stroke: #94592A; stroke-width: 9; stroke-linecap: round; }
@@ -64,8 +66,14 @@
 .hand { fill: #F0BE96; }
 .shoe { fill: #2A2233; }
 
-#fruits, #flutters { position: absolute; inset: 0; }
-#fruits, #flutters, .flutter { pointer-events: none; }   /* containers must never swallow taps */
+#fruits, #flutters, #pests { position: absolute; inset: 0; }
+#pests { pointer-events: none; }
+/* a pest: 100 × 100 at scale 1, sized in world units by pests.js; the pest takes the tap, its helpers never do */
+.pest { position: absolute; left: 0; top: 0; width: 100px; height: 100px; pointer-events: auto; cursor: pointer; will-change: transform; }
+.pest svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 3px 2px rgba(20, 40, 20, .3)); }
+.pest-ladybug, .pest-spray { pointer-events: none; }
+#fruits, #flutters { pointer-events: none; }             /* containers must never swallow taps */
+.flutter { pointer-events: auto; cursor: pointer; }      /* … but the butterfly itself says hello */
 .fruit-node { position: absolute; pointer-events: auto; touch-action: none; outline-offset: 2px; border-radius: 50%; }
 .fruit-inner { position: absolute; inset: 0; will-change: transform; }
 .fruit-node svg {
@@ -149,9 +157,9 @@
   width: 46px; height: 46px; display: grid; place-items: center;
   color: var(--ink); background: var(--cream);
   border: 2.5px solid var(--ink); border-radius: 50%; box-shadow: 0 4px 0 var(--ink);
-  transition: transform .15s, box-shadow .15s;
+  transition: translate .15s, box-shadow .15s;
 }
-#home:active, #sound:active, #lang:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+#home:active, #sound:active, #lang:active { translate: 0 3px; box-shadow: 0 1px 0 var(--ink); }
 #sound svg { width: 24px; }
 #sound { left: 72px; }
 #home svg { width: 24px; }
@@ -190,23 +198,24 @@
 }
 
 /* steering pad — sits beside the ladder, follows the climber */
+/* the climb arrows stay put at the side of the screen — a finger or a mouse resting on one always finds it */
 #steer {
-  --arrow: clamp(46px, 7.5vw, 68px);
-  position: absolute; left: 0; top: 0; z-index: 2;
+  --arrow: clamp(52px, 8vw, 72px);
+  position: absolute; right: max(16px, env(safe-area-inset-right)); top: 50%; translate: 0 -50%; z-index: 2;
   display: flex; flex-direction: column; align-items: center; gap: 6px;
   visibility: hidden; will-change: transform;
 }
 #steer button {
-  pointer-events: auto; cursor: pointer;
+  pointer-events: auto; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   width: var(--arrow); height: var(--arrow); display: grid; place-items: center;
   color: var(--ink); background: var(--cream);
   border: 3px solid var(--ink); border-radius: 50%; box-shadow: 0 5px 0 var(--ink);
-  transition: transform .12s, box-shadow .12s, opacity .2s;
+  transition: translate .12s, box-shadow .12s, opacity .2s;
 }
 #steer button svg { width: 62%; }
-#steer button:hover { transform: translateY(-2px); box-shadow: 0 7px 0 var(--ink); }
-#steer button:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
-#steer button[disabled] { opacity: .35; cursor: default; box-shadow: 0 5px 0 var(--ink); transform: none; }
+#steer button:hover { translate: 0 -2px; box-shadow: 0 7px 0 var(--ink); }
+#steer button:active { translate: 0 3px; box-shadow: 0 2px 0 var(--ink); }
+#steer button[disabled] { opacity: .35; cursor: default; box-shadow: 0 5px 0 var(--ink); translate: none; }
 #btn-up { background: var(--crimson); color: var(--cream); }
 #steer #rungs {
   font: 700 .8rem/1 var(--body); padding: 4px 8px; border-radius: 999px;
@@ -219,6 +228,31 @@
 .rung-hit { stroke: transparent; stroke-width: 44; cursor: pointer; transition: stroke .2s; }
 .rung-live:hover { stroke: rgba(255, 244, 223, .3); }
 
+#stop, #next, #replay, #to-orchard { display: inline-flex; align-items: center; justify-content: center; gap: .4em; }
+#stop {
+  pointer-events: auto; cursor: pointer; margin-top: 12px;
+  padding: 8px 22px 10px; border-radius: 999px;
+  font: 400 clamp(1.15rem, 3vw, 1.5rem)/1.2 var(--display); color: var(--ink);
+  background: var(--gold); border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink);
+  transition: box-shadow .15s, translate .15s;
+}
+#stop:active { translate: 0 4px; box-shadow: 0 2px 0 var(--ink); }
+
+#stars { display: flex; justify-content: center; gap: 10px; margin: 0 0 16px; }
+#stars .star {
+  width: clamp(38px, 11vw, 52px); aspect-ratio: 1; display: grid; place-items: center;
+  border-radius: 50%; border: 2.5px solid var(--ink); background: #EDE6D6; color: #C9BFA8;
+}
+#stars .star svg { width: 74%; fill: currentColor; }
+#stars .star.won { background: var(--gold); color: #E8A417; box-shadow: 0 0 18px rgba(255, 211, 110, .8); }
+#next {
+  cursor: pointer; padding: 10px 26px 12px; border-radius: 999px;
+  font: 400 1.45rem/1.2 var(--display); color: var(--ink);
+  background: var(--gold); border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink);
+  transition: box-shadow .15s, translate .15s;
+}
+#next:active { translate: 0 4px; box-shadow: 0 2px 0 var(--ink); }
+
 #climb-controls {
   display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;
   margin-top: 14px; visibility: hidden;
@@ -229,10 +263,10 @@
   padding: 8px 24px 10px; border-radius: 999px;
   font: 400 clamp(1.3rem, 3.4vw, 1.75rem)/1.2 var(--display);
   border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink);
-  transition: box-shadow .15s, transform .15s, opacity .2s;
+  transition: box-shadow .15s, translate .15s, opacity .2s;
 }
-#climb-controls button:hover { transform: translateY(-2px); box-shadow: 0 8px 0 var(--ink); }
-#climb-controls button:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ink); }
+#climb-controls button:hover { translate: 0 -2px; box-shadow: 0 8px 0 var(--ink); }
+#climb-controls button:active { translate: 0 4px; box-shadow: 0 2px 0 var(--ink); }
 #climb-all { color: var(--cream); background: var(--crimson); }
 #climb-all svg { width: 24px; animation: nudge 1s ease-in-out infinite; }
 #climb-step { color: var(--ink); background: var(--cream); }
@@ -275,16 +309,16 @@
   cursor: pointer; padding: 10px 22px 12px; border-radius: 999px;
   font: 400 1.3rem/1.2 var(--display); color: var(--ink);
   background: var(--cream); border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink);
-  transition: box-shadow .15s, transform .15s;
+  transition: box-shadow .15s, translate .15s;
 }
-#to-orchard:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ink); }
+#to-orchard:active { translate: 0 4px; box-shadow: 0 2px 0 var(--ink); }
 #replay {
   cursor: pointer; padding: 10px 26px 12px; border-radius: 999px;
   font: 400 1.45rem/1.2 var(--display); color: var(--cream);
   background: #2C7A47; border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink);
-  transition: box-shadow .15s, transform .15s;
+  transition: box-shadow .15s, translate .15s;
 }
-#replay:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ink); }
+#replay:active { translate: 0 4px; box-shadow: 0 2px 0 var(--ink); }
 
 /* ---------- overlay ---------- */
 #overlay { z-index: 9; }
