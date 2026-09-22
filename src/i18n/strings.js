@@ -23,6 +23,7 @@ export const STR = {
   levelNo:      { ar: 'مرحلة', en: 'Level' },
   locked:       { ar: 'مقفولة', en: 'Locked' },
   gardenTitle:  { ar: 'بستاني', en: 'My garden' },
+  myHome:       { ar: 'بيتي', en: 'My home' },
   mapTitle:     { ar: 'طريق البستان', en: 'The Orchard Path' },
   mapSub:       { ar: 'كل مرحلة بتفتح اللي بعدها', en: 'Each one opens the next' },
   learnPick:    { ar: 'اطلع السلم واقطف', en: 'Climb the ladder and pick' },

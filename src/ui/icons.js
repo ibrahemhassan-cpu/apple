@@ -14,10 +14,14 @@ export const ICON_SVG = {
   replant: `<g transform="translate(-1.5 3) scale(.84)">${SPROUT}</g>${AGAIN}`,
   // a big basket with the little "again" arrow: another order
   again: `<path d="M2.5 11.5h14.5l-2 8.5H4.5z" fill="currentColor"/><path d="M6 11.5c0-3.4 1.4-5 3.75-5s3.75 1.6 3.75 5" ${S} stroke-width="2.2"/>${AGAIN}`,
-  // the house: back to the orchard
+  // a folded map: back to the road of levels
+  map: `<path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z" ${S} stroke-width="2.3"/><path d="M9 4v13.5M15 6.5V20" ${S} stroke-width="2.3"/>`,
+  // the house: home, where the child's garden is
   home: `<path d="M3 11.5 12 4l9 7.5" ${S} stroke-width="2.4"/><path d="M5.5 10v9.5h4.5v-5.5h4v5.5h4.5V10" ${S} stroke-width="2.4"/>`,
   // a sprout coming out of the soil: plant it
   plant: SPROUT,
+  // an arrow back the way you came (drawn for right-to-left; turned round in English by CSS)
+  back: `<path d="M4 12h15M13 5.5l6.5 6.5-6.5 6.5" ${S} stroke-width="3"/>`,
   // ✓: that's enough, I'm done
   done: `<path d="M4.5 12.5l5 5 10-11" ${S} stroke-width="3.2"/>`,
 };

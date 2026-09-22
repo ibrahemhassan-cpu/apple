@@ -180,7 +180,8 @@ span.map-fruit { width: 78%; } span.map-fruit svg { width: 100%; }
 .map-stop.is-now { --medal: clamp(100px, 27vw, 132px); }
 .map-stop.is-now .map-medal { box-shadow: 0 8px 0 var(--ink), 0 0 0 8px var(--gold), 0 0 40px 14px rgba(255, 211, 110, .85); }
 .map-here {
-  position: absolute; left: 0; top: 0; translate: -50% calc(var(--medal) * -1 - 26px); z-index: 1;
+  /* placed with top/left (not translate): GSAP bobs it up and down with transforms of its own */
+  position: absolute; left: -15px; top: calc(var(--medal) * -1 - 30px); width: 30px; text-align: center; z-index: 1;
   font-size: 30px; color: var(--crimson); text-shadow: 0 3px 0 var(--ink); pointer-events: none;
 }
 /* done: a gold rim */
@@ -192,6 +193,38 @@ span.map-fruit { width: 78%; } span.map-fruit svg { width: 100%; }
 .map-stop.is-locked .map-label small { color: #7A6A58; }
 
 /* ---------- بستاني: the child's own garden at the top of the map ---------- */
+/* بيتي: the child's house on the map, beside the start of the road */
+.map-house {
+  all: unset; box-sizing: border-box; position: absolute; z-index: 2; width: clamp(110px, 30vw, 150px);
+  translate: -50% -78%; display: grid; justify-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.map-house svg { width: 100%; display: block; overflow: visible; filter: drop-shadow(0 6px 4px rgba(30, 60, 30, .25)); transition: translate .15s; }
+.map-house:hover svg { translate: 0 -3px; }
+.map-house:active svg { translate: 0 3px; }
+.map-house:focus-visible { outline: 3px solid var(--gold); outline-offset: 4px; border-radius: 16px; }
+.map-house-label {
+  display: inline-flex; align-items: center; gap: .3em; margin-top: -4px; padding: 2px 12px 4px;
+  background: var(--cream); border: 2.5px solid var(--ink); border-radius: 999px; box-shadow: 0 4px 0 var(--ink);
+  font: 400 1.15rem/1.2 var(--display); color: var(--ink);
+}
+.map-house-label .ic { width: 1.2em; height: 1.2em; }
+.map-house-new {
+  position: absolute; top: 8%; inset-inline-end: 4%; width: 38px; height: 38px; display: grid; place-items: center;
+  border-radius: 50%; background: var(--gold); border: 3px solid var(--ink); box-shadow: 0 0 16px 4px rgba(255, 211, 110, .9);
+}
+.map-house-new svg { width: 72%; }
+
+/* the home screen: the garden behind the house */
+.home-page { position: fixed; inset: 0; overflow: hidden; display: flex; flex-direction: column; background: linear-gradient(#5BB3E6 0%, #A4D9F2 45%, #DDF1F1 100%); }
+.home-page .map-sky { background: none; z-index: 0; }
+.home-back { position: absolute; top: max(16px, env(safe-area-inset-top)); inset-inline-start: 16px; z-index: 3; }
+.home-back .ic { width: 1.5em; height: 1.5em; }
+[dir="ltr"] .ic-back { scale: -1 1; }
+.home-title { position: relative; z-index: 1; margin: 0; padding-top: 70px; text-align: center; font-size: clamp(2.4rem, 10vw, 4rem); }
+/* the garden sits on the bottom of the screen, the sky above it; the counter under the title */
+.home-page .garden { flex: 1; width: 100%; margin: 0; display: flex; flex-direction: column; min-height: 0; }
+.home-page .garden-tag { position: relative; top: auto; inset-inline-start: auto; translate: none; align-self: center; margin: 6px 0 0; }
+.home-page .garden-art { flex: 1; min-height: 0; width: 100%; height: 100%; }
 .garden { position: relative; width: min(100% - 16px, 560px); margin: 6px auto -10px; }
 .garden-art { display: block; width: 100%; height: auto; overflow: visible; }
 .garden-tag {

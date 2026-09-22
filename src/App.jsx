@@ -4,6 +4,7 @@ import { LEVELS, levelIndex } from './levels/levels.js';
 import { finishLevel } from './levels/progress.js';
 import Path from './screens/Path.jsx';
 import SeedCard from './screens/SeedCard.jsx';
+import MyHome from './screens/MyHome.jsx';
 
 const FRUIT = Object.fromEntries(FRUITS.map(f => [f.id, f]));
 
@@ -54,13 +55,15 @@ export default function App() {
       </Suspense>
     );
   }
+  const toHome = () => setScreen({ name: 'home' });
+  if (screen.name === 'home') return <MyHome onBack={toPath} />;
   if (screen.name === 'card' && level) {
     return (
       <>
-        <Path onPick={card} />
+        <Path onPick={card} onHome={toHome} />
         <SeedCard level={level} fruit={FRUIT[level.fruit]} onClose={toPath} onPlay={() => play(screen.i)} />
       </>
     );
   }
-  return <Path onPick={card} />;
+  return <Path onPick={card} onHome={toHome} />;
 }

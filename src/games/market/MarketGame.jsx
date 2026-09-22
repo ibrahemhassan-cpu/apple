@@ -442,7 +442,7 @@ export default function MarketGame({ level, onExit, onReplay, onDone, onNext }) 
 
       <div className="m-hud">
         <button type="button" className="round-btn" aria-label={t('home')} onClick={onExit}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /><path d="M5.5 10v9.5h4.5v-5.5h4v5.5h4.5V10" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" /></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinejoin="round" /><path d="M9 4v13.5M15 6.5V20" fill="none" stroke="currentColor" strokeWidth="2.3" /></svg>
         </button>
         <button type="button" className="round-btn" aria-pressed={sound} aria-label={t('soundAria')} onClick={() => setSound(!sound)}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -512,7 +512,7 @@ export default function MarketGame({ level, onExit, onReplay, onDone, onNext }) 
           <div className="m-actions">
             {onNext && <button type="button" className="m-next" onClick={onNext}><Icon name="next" />{t('nextLevel')}</button>}
             <button type="button" className="m-replay" onClick={onReplay}><Icon name="again" />{t('marketAgain')}</button>
-            <button type="button" className="m-home" onClick={onExit}><Icon name="home" />{t('home')}</button>
+            <button type="button" className="m-home" onClick={onExit}><Icon name="map" />{t('home')}</button>
           </div>
         </div>
       )}

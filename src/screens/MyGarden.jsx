@@ -1,11 +1,11 @@
-/* بستاني — the child's own garden at the top of the map. Every planting level they finish grows its tree
-   here, in its own bed: an apple tree, a mango tree, a potato plant. Every market level leaves a crate of
-   fruit by the door of their little house.
+/* بستاني — the child's own garden, behind their house (the house on the map takes them here). Every planting
+   level they finish grows its tree in its own bed: an apple tree, a mango tree, a potato plant. Every market
+   level leaves a crate of fruit by the door.
 
-   The first time the map opens after a level is finished, the new tree grows in front of them — the soil
-   bursts, the stem shoots up, the crown opens, the fruit pops out one by one — and then the map slides down
-   to the next stop (onGrown). A tap on any tree shakes it and a fruit falls; a tap on the house puffs smoke.
-   What has already been shown is remembered (localStorage 'orchard-garden'), so each tree grows only once. */
+   A tree not seen yet grows in front of them when they come in — the soil bursts, the stem shoots up, the
+   crown opens, the fruit pops out one by one. A tap on any tree shakes it and a fruit falls; a tap on the
+   house puffs smoke from the chimney. What has been shown is remembered (localStorage 'orchard-garden'), so
+   each tree grows only once — and freshTrees() tells the map there's something new to see. */
 import { useRef } from 'react';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
@@ -14,20 +14,34 @@ import { LEVELS } from '../levels/levels.js';
 import { isDone } from '../levels/progress.js';
 import { useSettings } from '../settings/SettingsContext.jsx';
 import { audioContext } from '../settings/audio.js';
+import { HouseArt } from './House.jsx';
 
 gsap.registerPlugin(useGSAP, MotionPathPlugin);
 
-const W = 400, H = 250;
+const W = 400;
 const GROW = LEVELS.filter(l => l.kind === 'grow');
 const MARKETS = LEVELS.filter(l => l.kind === 'market');
-// the beds: a back row and a front row, left of the house
-const BEDS = GROW.map((l, i) => {
-  const back = i % 2 === 0, col = Math.floor(i / 2);
-  return { level: l, x: 54 + col * 74 + (back ? 0 : 30), y: back ? 150 : 214, s: back ? .78 : .95 };
-});
+/* the beds in front of the house: two long rows on a wide screen; on a phone held upright, two columns of
+   bigger trees, row after row down the lawn (each row a little nearer, a little bigger) */
+function layout(tall) {
+  if (!tall) {
+    const half = Math.ceil(GROW.length / 2);
+    return { H: 300, beds: GROW.map((l, i) => {
+      const back = i < half, col = back ? i : i - half;
+      return { level: l, x: back ? 52 + col * 78 : 92 + col * 80, y: back ? 196 : 266, s: back ? .84 : 1 };
+    }) };
+  }
+  const rows = Math.ceil(GROW.length / 2);
+  return { H: 250 + rows * 104, beds: GROW.map((l, i) => {
+    const row = Math.floor(i / 2), col = i % 2;
+    return { level: l, x: (col ? 290 : 110) + (row % 2 ? 22 : -22), y: 262 + row * 104, s: 1.3 + row * .08 };
+  }) };
+}
 
 const SEEN = 'orchard-garden';
 const readSeen = () => { try { return JSON.parse(localStorage.getItem(SEEN)) || []; } catch { return []; } };
+/* the planted levels whose tree hasn't been seen growing yet */
+export const freshTrees = progress => GROW.filter(l => isDone(progress, l.id) && !readSeen().includes(l.id)).map(l => l.id);
 const saveSeen = ids => { try { localStorage.setItem(SEEN, JSON.stringify(ids)); } catch { /* private mode: it grows again next time, that's all */ } };
 
 function chime(on, notes = [784, 1047, 1319]) {
@@ -111,7 +125,8 @@ function Crate({ x, y, fruit }) {
   );
 }
 
-export default function MyGarden({ progress, onGrown }) {
+export default function MyGarden({ progress, tall = false }) {
+  const { H, beds: BEDS } = layout(tall);
   const { t, n, sound } = useSettings();
   const scope = useRef(null);
   const grownIds = GROW.filter(l => isDone(progress, l.id)).map(l => l.id);
@@ -123,12 +138,12 @@ export default function MyGarden({ progress, onGrown }) {
     const beds = gsap.utils.toArray('.g-bed.is-grown', scope.current);
     // the trees you have: a gentle sway, each in its own time
     beds.forEach((b, i) => gsap.to(b.querySelector('.g-plant'), { rotation: 2.2, transformOrigin: '50% 100%', duration: 2 + (i % 3) * .4, yoyo: true, repeat: -1, ease: 'sine.inOut', delay: i * .3 }));
-    gsap.to('.g-butterfly', { motionPath: { path: [{ x: 60, y: 90 }, { x: 180, y: 50 }, { x: 300, y: 110 }, { x: 200, y: 140 }, { x: 60, y: 90 }], curviness: 1.4 }, duration: 12, repeat: -1, ease: 'none' });
+    gsap.to('.g-butterfly', { motionPath: { path: [{ x: 60, y: 130 }, { x: 170, y: 90 }, { x: 240, y: 170 }, { x: 120, y: 200 }, { x: 60, y: 130 }], curviness: 1.4 }, duration: 12, repeat: -1, ease: 'none' });
     gsap.to('.g-wing', { scaleX: .2, transformOrigin: '50% 50%', duration: .12, yoyo: true, repeat: -1 });
 
-    if (!fresh.length) { onGrown?.(false); return; }
+    if (!fresh.length) return;
     // the new ones grow, one after another
-    const tl = gsap.timeline({ delay: .6, onComplete: () => { saveSeen([...new Set([...seen, ...grownIds])]); onGrown?.(true); } });
+    const tl = gsap.timeline({ delay: .7, onComplete: () => saveSeen([...new Set([...seen, ...grownIds])]) });
     fresh.forEach((id, k) => {
       const bed = scope.current.querySelector(`.g-bed[data-id="${id}"]`);
       if (!bed) return;
@@ -164,7 +179,7 @@ export default function MyGarden({ progress, onGrown }) {
   };
   const puff = () => {
     chime(sound, [523, 440]);
-    gsap.fromTo('.g-smoke circle', { opacity: .8, y: 0, scale: .5 }, { opacity: 0, y: -40, scale: 1.6, duration: 1.4, stagger: .2, ease: 'power1.out', transformOrigin: '50% 50%' });
+    gsap.fromTo(scope.current.querySelectorAll('.house-smoke circle'), { opacity: .85, y: 0, x: 0, scale: .5 }, { opacity: 0, y: -46, x: 10, scale: 1.7, duration: 1.5, stagger: .22, ease: 'power1.out', transformOrigin: '50% 50%' });
   };
 
   return (
@@ -173,26 +188,18 @@ export default function MyGarden({ progress, onGrown }) {
         <svg viewBox="0 0 24 24" className="ic"><rect x="10.5" y="13" width="3" height="8" rx="1.2" fill="#7A4A22" /><circle cx="12" cy="9" r="7" fill="#4FA356" /><circle cx="9" cy="8" r="1.6" fill="#E23A4B" /><circle cx="14.5" cy="10.5" r="1.6" fill="#E23A4B" /></svg>
         <b>{t('gardenTitle')}</b> <span>{n(grownIds.length)} / {n(GROW.length)}</span>
       </div>
-      <svg className="garden-art" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
-        {/* the lawn and a wooden fence round it */}
-        <path d="M0,120 C80,96 320,96 400,120 L400,250 L0,250 Z" fill="#8FCB6C" />
-        <path d="M0,150 C100,130 300,130 400,150 L400,250 L0,250 Z" fill="#7DBE5E" />
+      <svg className="garden-art" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+        {/* the lawn behind the house, a wooden fence round it */}
+        <path d="M-400,150 C80,126 320,126 800,150 L800,900 L-400,900 Z" fill="#8FCB6C" />
+        <path d="M-400,184 C100,164 300,164 800,184 L800,900 L-400,900 Z" fill="#7DBE5E" />
         <g stroke="#B07A45" strokeLinecap="round">
-          <path d="M8,118 C90,94 310,94 392,118" strokeWidth="4" fill="none" />
-          <path d="M8,130 C90,106 310,106 392,130" strokeWidth="4" fill="none" />
-          {Array.from({ length: 14 }, (_, i) => { const x = 14 + i * 28, y = 116 - Math.sin(i / 13 * Math.PI) * 22; return <path key={i} d={`M${x},${y - 12} V${y + 18}`} strokeWidth="5" />; })}
+          <path d="M8,148 C90,124 310,124 392,148" strokeWidth="4" fill="none" />
+          <path d="M8,160 C90,136 310,136 392,160" strokeWidth="4" fill="none" />
+          {Array.from({ length: 14 }, (_, i) => { const x = 14 + i * 28, y = 146 - Math.sin(i / 13 * Math.PI) * 22; return <path key={i} d={`M${x},${y - 12} V${y + 18}`} strokeWidth="5" />; })}
         </g>
-        {/* the house */}
-        <g className="g-house" transform="translate(356 176)" onPointerDown={puff}>
-          <g className="g-smoke" transform="translate(14 -76)">{[0, 1, 2].map(k => <circle key={k} r="7" fill="#fff" opacity="0" />)}</g>
-          <rect x="8" y="-78" width="10" height="20" fill="#9C4A2E" />
-          <rect x="-30" y="-46" width="60" height="50" rx="4" fill="#FFF4DF" stroke="#1B1F3B" strokeWidth="3" />
-          <path d="M-38,-44 L0,-80 L38,-44 Z" fill="#D7263D" stroke="#1B1F3B" strokeWidth="3" strokeLinejoin="round" />
-          <rect x="-8" y="-20" width="16" height="24" rx="3" fill="#8E5526" stroke="#1B1F3B" strokeWidth="2.5" />
-          <rect x="-24" y="-36" width="12" height="12" rx="2" fill="#9AD3F5" stroke="#1B1F3B" strokeWidth="2" />
-          <rect x="12" y="-36" width="12" height="12" rx="2" fill="#9AD3F5" stroke="#1B1F3B" strokeWidth="2" />
-        </g>
-        {cratesDone.map((l, i) => <Crate key={l.id} x={380 - i * 20} y={236} fruit={Object.keys(l.order)[i % Object.keys(l.order).length]} />)}
+        {/* their house, at the back */}
+        <g className="g-house" transform="translate(262 34) scale(.95)" onPointerDown={puff}><HouseArt /></g>
+        {cratesDone.map((l, i) => <Crate key={l.id} x={300 - i * 22} y={158} fruit={Object.keys(l.order)[i % Object.keys(l.order).length]} />)}
 
         {/* the beds */}
         {BEDS.map(({ level, x, y, s }) => {

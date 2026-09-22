@@ -9,19 +9,24 @@ import { useProgress, isUnlocked, isDone, starsOf, currentIndex } from '../level
 import { useSettings } from '../settings/SettingsContext.jsx';
 import { sfx } from '../settings/sfx.js';
 import TopBar from './TopBar.jsx';
-import MyGarden from './MyGarden.jsx';
+import { freshTrees } from './MyGarden.jsx';
+import { HouseArt } from './House.jsx';
+import { Icon } from '../ui/icons.jsx';
 
 gsap.registerPlugin(useGSAP, DrawSVGPlugin);
 
 const FRUIT = Object.fromEntries(FRUITS.map(f => [f.id, f]));
 
 /* the map is drawn in its own units: 400 wide, STEP tall per stop. It scales to the screen's width. */
-const W = 400, STEP = 225, TOP = 120, BOTTOM = 170;
-const stopAt = i => ({ x: W / 2 + Math.sin(i * 1.15 + .6) * 112, y: TOP + i * STEP });
+const W = 400, STEP = 225, TOP = 150, BOTTOM = 170;
+// the road starts in the middle of the screen, then winds from side to side
+const stopAt = i => ({ x: W / 2 + Math.sin(i * 1.15) * 112, y: TOP + i * STEP });
+// the child's house, on the grass beside the start of the road
+const HOUSE = { x: 74, y: TOP + 20 };
 
 /* a smooth country road through every stop */
 function roadPath(points) {
-  let d = `M${points[0].x},${points[0].y - 90}`;
+  let d = `M${points[0].x},${points[0].y - 30}`;
   d += ` L${points[0].x},${points[0].y}`;
   for (let i = 1; i < points.length; i++) {
     const a = points[i - 1], b = points[i], dy = (b.y - a.y) / 2;
@@ -42,7 +47,8 @@ function decorations(points) {
     if (i % 2) out.push({ kind: 'fence', x: p.x - side * 130, y: p.y - 60, s: 1 });
     else out.push({ kind: 'rock', x: p.x + side * 150, y: p.y + 40, s: .9 });
   });
-  return out.filter(d => d.x > 18 && d.x < W - 18);
+  // nothing grows on the child's house, or in front of its door
+  return out.filter(d => d.x > 18 && d.x < W - 18 && Math.hypot(d.x - HOUSE.x, d.y - HOUSE.y) > 90);
 }
 
 function Decoration({ kind, x, y, s }) {
@@ -114,12 +120,13 @@ function Pic({ id, pics, className }) {
 /* ---------------------------------------------------------------------
    the road through the orchard: every stop opens the one after it
    --------------------------------------------------------------------- */
-export default function Path({ onPick }) {
+export default function Path({ onPick, onHome }) {
   const { t, n, sound } = useSettings();
   const progress = useProgress();
   const now = currentIndex(progress);
   const scope = useRef(null);
   const [pics, setPics] = useState({});
+  const newTree = freshTrees(progress).length > 0;       // a tree is waiting in the garden: the house calls
 
   const points = useMemo(() => LEVELS.map((_, i) => stopAt(i)), []);
   const H = TOP + (LEVELS.length - 1) * STEP + BOTTOM;
@@ -135,14 +142,11 @@ export default function Path({ onPick }) {
     return () => { alive = false; };
   }, []);
 
-  /* where you are on the road: straight there — or, when a new tree has just grown in the garden, a slow
-     slide down from the garden to the next stop */
-  const toNow = animated => {
-    const here = scope.current?.querySelector('.map-stop.is-now');
-    here?.scrollIntoView({ block: 'center', behavior: animated ? 'smooth' : 'instant' });
-  };
-
   useGSAP(() => {
+    scope.current.querySelector('.map-stop.is-now')?.scrollIntoView({ block: 'center', behavior: 'instant' });
+    gsap.from('.map-house', { scale: 0, transformOrigin: '50% 100%', duration: .8, ease: 'back.out(2)', delay: .4 });
+    gsap.to('.map-house .house-smoke circle', { keyframes: [{ opacity: .8, y: 0, x: 0, scale: .5, duration: 0 }, { opacity: 0, y: -30, x: 8, scale: 1.6, duration: 2.2 }], stagger: .7, repeat: -1, ease: 'power1.out', transformOrigin: '50% 50%' });
+    if (newTree) gsap.to('.map-house-new', { scale: 1.2, duration: .6, yoyo: true, repeat: -1, ease: 'sine.inOut' });
     gsap.timeline({ defaults: { ease: 'expo.out' } })
       .from('.map-title', { autoAlpha: 0, yPercent: 40, duration: 1 })
       .from('.map-road-in', { drawSVG: '0%', duration: 1.6, ease: 'power2.inOut' }, 0)
@@ -182,7 +186,6 @@ export default function Path({ onPick }) {
         <h1 className="orchard-title map-title">{t('mapTitle')}</h1>
       </header>
 
-      <MyGarden progress={progress} onGrown={animated => (animated ? setTimeout(() => toNow(true), 500) : toNow(false))} />
 
       <div className="map-land" style={{ aspectRatio: `${W} / ${H}` }}>
         <svg className="map-ground" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
@@ -192,6 +195,19 @@ export default function Path({ onPick }) {
           <path d={road} fill="none" stroke="#FFF4DF" strokeWidth="4" strokeDasharray="10 16" strokeLinecap="round" opacity=".8" />
           <g className="map-deco">{decor.filter(d => d.y >= points[0].y).map((d, k) => <Decoration key={k} {...d} />)}</g>
         </svg>
+
+        {/* home: the child's house, their garden behind it */}
+        <button type="button" className="map-house" aria-label={t('myHome')}
+          style={{ left: `${HOUSE.x / W * 100}%`, top: `${HOUSE.y / H * 100}%` }}
+          onClick={() => { sfx.open(sound); onHome?.(); }}>
+          <svg viewBox="0 0 140 130" aria-hidden="true"><HouseArt /></svg>
+          <span className="map-house-label"><Icon name="home" />{t('myHome')}</span>
+          {newTree && (
+            <span className="map-house-new" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 20v-7" stroke="#2C7A47" strokeWidth="2.6" strokeLinecap="round" /><path d="M12 13C12 8 15 5.2 20 5.2 20 10 17 13 12 13ZM12 14.4C12 10.4 9.4 8.2 4.4 8.2 4.4 12.2 7 14.4 12 14.4Z" fill="#3E8E47" /></svg>
+            </span>
+          )}
+        </button>
 
         <ol className="map-stops">
           {LEVELS.map((level, i) => {
